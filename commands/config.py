@@ -343,7 +343,6 @@ class Config(commands.Cog):
             return
 
         TYPE_TICKET[ticket_type] = category.id
-        print(self.bot.get_cog("Ticket"))
         await self.bot.get_cog("Ticket").setup_config_channel(self.bot.get_cog("Ticket").config_channel)
         await interaction.followup.send(f"La catégorie pour le type de ticket `{ticket_type}` a été configurée avec succès : {category.mention}", ephemeral=True)
 async def setup(bot):
