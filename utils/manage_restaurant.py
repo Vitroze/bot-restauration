@@ -56,7 +56,7 @@ def save_restaurant(restaurant: Restaurant) -> bool:
     return True
 
 restaurant_objects = {}
-def load_all_restaurants():
+async def load_all_restaurants():
     global restaurant_objects
     restaurant_objects = {}
     restaurants = get_all_restaurants()

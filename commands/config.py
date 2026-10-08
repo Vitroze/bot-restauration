@@ -1,3 +1,4 @@
+from functools import partial
 from pyexpat.errors import messages
 
 import discord
@@ -7,6 +8,7 @@ from main import printMessage
 from utils.manage_restaurant import *
 from models.restaurant import Restaurant, RestaurantType
 from utils.manage_permission import check_permission_restaurant
+from utils.manage_ticket import TYPE_TICKET
 
 printMessage("Config", "Chargement de l'extension : config")
 
@@ -261,5 +263,88 @@ class Config(commands.Cog):
 
         await interaction.response.send_message(f"Le type de restaurant `{name}` a été supprimé avec succès.")
 
+    ## =================
+    ## Ticket
+    ## =================
+
+    async def is_valid_emoji(self, emoji: str) -> bool:
+        emoji = emoji.strip()
+
+        if emoji.startswith("<") and emoji.endswith(">"):
+            try:
+                partial_emoji = discord.PartialEmoji.from_str(emoji)
+            except Exception:
+                return False
+            return partial_emoji.id is not None and self.bot.get_emoji(partial_emoji.id) is not None
+
+        if discord.utils.get(self.bot.emojis, name=emoji) is not None:
+            return True
+
+        if emoji.isdigit() and self.bot.get_emoji(int(emoji)) is not None:
+            return True
+
+        return bool(emoji) and not emoji.isascii()
+
+    @app_commands.command(name=f"{PREFIX}channel_ticket", description="Configurer le salon de ticket pour un restaurant.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.describe(channel="Le salon à configurer pour les tickets")
+    async def setup_ticket_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        if self.bot is None:
+            await interaction.response.send_message("Le bot n'est pas initialisé correctement.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        if self.bot.get_cog("Ticket") is None:
+            await interaction.response.send_message("Le système de ticket n'est pas initialisé correctement.", ephemeral=True)
+            return
+
+        await self.bot.get_cog("Ticket").setup_config_channel(channel)
+        await interaction.followup.send(f"Le salon de ticket a été configuré avec succès : {channel.mention}", ephemeral=True)
+
+    @app_commands.command(name=f"{PREFIX}emoji_ticket", description="Configurer l'emoji de ticket pour un restaurant.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.describe(emoji="L'emoji à configurer pour les tickets")
+    async def setup_ticket_emoji(self, interaction: discord.Interaction, emoji: str):
+        if self.bot is None:
+            await interaction.response.send_message("Le bot n'est pas initialisé correctement.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        # Vérifier si c'est un emoji valide (unicode ou custom)
+        is_emoji_valid = await self.is_valid_emoji(emoji)
+        if not is_emoji_valid:
+            await interaction.response.send_message("L'emoji spécifié n'est pas valide. Veuillez fournir un emoji unicode ou un emoji personnalisé du serveur.", ephemeral=True)
+            return
+
+        if self.bot.get_cog("Ticket") is None:
+            await interaction.response.send_message("Le système de ticket n'est pas initialisé correctement.", ephemeral=True)
+            return
+
+        self.bot.get_cog("Ticket").config_ticket_emoji = emoji
+        await self.bot.get_cog("Ticket").setup_config_channel(self.bot.get_cog("Ticket").config_channel)
+        await interaction.followup.send(f"L'emoji de ticket a été configuré avec succès : {emoji}", ephemeral=True)
+
+    @app_commands.command(name=f"{PREFIX}category_ticket", description="Configurer la catégorie de ticket pour un type de ticket.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.describe(ticket_type="Le type de ticket à configurer")
+    @app_commands.describe(category="La catégorie à configurer pour le type de ticket")
+    @app_commands.choices(ticket_type=[app_commands.Choice(name=key, value=key) for key in TYPE_TICKET.keys()])
+    async def setup_ticket_category(self, interaction: discord.Interaction, ticket_type: str, category: discord.CategoryChannel):
+        if self.bot is None:
+            await interaction.response.send_message("Le bot n'est pas initialisé correctement.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        if self.bot.get_cog("Ticket") is None:
+            await interaction.response.send_message("Le système de ticket n'est pas initialisé correctement.", ephemeral=True)
+            return
+
+        TYPE_TICKET[ticket_type] = category.id
+        print(self.bot.get_cog("Ticket"))
+        await self.bot.get_cog("Ticket").setup_config_channel(self.bot.get_cog("Ticket").config_channel)
+        await interaction.followup.send(f"La catégorie pour le type de ticket `{ticket_type}` a été configurée avec succès : {category.mention}", ephemeral=True)
 async def setup(bot):
     await bot.add_cog(Config(bot))
