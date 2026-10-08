@@ -4,10 +4,17 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from main import printMessage
+from utils.manage_restaurant import *
+from models.restaurant import Restaurant, RestaurantType
+from utils.manage_permission import check_permission_restaurant
 
 printMessage("Config", "Chargement de l'extension : config")
 
 PREFIX = "config_"
+ALL_TYPES_PERMISSIONS_RESTAURANT = [
+    "edit_restaurant",
+    "view_config",
+]
 
 @app_commands.guild_only()
 class Config(commands.Cog):
@@ -16,33 +23,255 @@ class Config(commands.Cog):
 
     # TODO: Rework system
 
-    @app_commands.command(name=f"{PREFIX}set_permission", description="Définit les permissions pour un rôle spécifique.")
+    # @app_commands.command(name=f"{PREFIX}set_permission", description="Définit les permissions pour un rôle spécifique.")
+    # @app_commands.checks.has_permissions(administrator=True)
+    # async def set_permission(self, interaction: discord.Interaction, role: discord.Role, permission: str):
+    #     await interaction.response.send_message(f"Les permissions pour le rôle `{role.name}` ont été définies.", ephemeral=True)
+
+    # @app_commands.command(name=f"{PREFIX}add_item", description="Ajoute un item à la liste des items.")
+    # @app_commands.checks.has_permissions(administrator=True)
+    # async def add_item(self, interaction: discord.Interaction, item_name: str):
+    #     await interaction.response.send_message(f"L'item `{item_name}` a été ajouté à la liste des items.", ephemeral=True)
+
+    RestaurantNameTransformer = app_commands.Transform[Restaurant, RestaurantTransformer]
+    RestaurantTypeTransformer = app_commands.Transform[RestaurantType, RestaurantTypeTransformer]
+
+    @app_commands.command(name=f"{PREFIX}create_restaurant", description="Crée un restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
-    async def set_permission(self, interaction: discord.Interaction, role: discord.Role, permission: str):
-        await interaction.response.send_message(f"Les permissions pour le rôle '{role.name}' ont été définies.", ephemeral=True)
+    async def create_restaurant(self, interaction: discord.Interaction, name: str, description: str, type: RestaurantTypeTransformer, location: str):
+        if is_existing_restaurant(name):
+            await interaction.response.send_message(f"Le restaurant `{name}` existe déjà.", ephemeral=True)
+            return
 
-    @app_commands.command(name=f"{PREFIX}add_item", description="Ajoute un item à la liste des items.")
+        if not is_existing_restaurant_type(type):
+            await interaction.response.send_message(f"Le type de restaurant `{type}` n'existe pas. Veuillez créer le type de restaurant avant de créer le restaurant.", ephemeral=True)
+            return
+
+        new_restaurant = Restaurant(name=name, description=description, type=type, location=location)
+        saved = save_restaurant(new_restaurant)
+
+        if not saved:
+            await interaction.response.send_message(f"Une erreur est survenue lors de la création du restaurant `{name}`.", ephemeral=True)
+            return
+
+        await interaction.response.send_message(f"Le restaurant `{name}` a été créé avec succès.")
+
+    @app_commands.command(name=f"{PREFIX}edit_restaurant", description="Modifie un restaurant existant.")
+    #@app_commands.checks.has_permissions(administrator=True)
+    @app_commands.describe(restaurant_name="Le nom du restaurant à modifier")
+    @app_commands.describe(new_description="La nouvelle description du restaurant")
+    @app_commands.describe(new_type="Le nouveau type du restaurant")
+    @app_commands.describe(new_location="La nouvelle localisation du restaurant")
+    @check_permission_restaurant(param="restaurant_name", permission="edit_restaurant")
+    async def edit_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, new_description: str = None, new_type: RestaurantTypeTransformer = None, new_location: str = None):
+        restaurant = get_all_restaurants().get(restaurant_name)
+
+        if not restaurant:
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
+
+        if new_description is None and new_type is None and new_location is None:
+            await interaction.response.send_message(f"Aucune modification n'a été spécifiée pour le restaurant `{restaurant_name}`.", ephemeral=True)
+            return
+
+        if new_description:
+            restaurant["description"] = new_description
+        if new_type and is_existing_restaurant_type(new_type.name):
+            restaurant["type"] = new_type.name
+        if new_location:
+            restaurant["location"] = new_location
+
+        save_restaurant(Restaurant(**restaurant))
+        await interaction.response.send_message(f"Le restaurant `{restaurant_name}` a été modifié avec succès.")
+
+    @app_commands.command(name=f"{PREFIX}delete_restaurant", description="Supprime un restaurant existant.")
     @app_commands.checks.has_permissions(administrator=True)
-    async def add_item(self, interaction: discord.Interaction, item_name: str):
-        await interaction.response.send_message(f"L'item '{item_name}' a été ajouté à la liste des items.", ephemeral=True)
-    # @app_commands.command(name="kick", description="Expulse un membre du serveur.")
-    # @app_commands.checks.has_permissions(kick_members=True)
-    # async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: str = None):
-    #     if not interaction.user.guild_permissions.kick_members:
-    #         await interaction.response.send_message("Vous n'avez pas la permission d'expulser des membres.", ephemeral=True)
-    #         return
+    @app_commands.describe(restaurant_name="Le nom du restaurant à supprimer")
+    async def delete_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer):
+        if not is_existing_restaurant(restaurant_name):
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
 
-    #     if member == interaction.user:
-    #         await interaction.response.send_message("Vous ne pouvez pas vous expulser vous-même.", ephemeral=True)
-    #         return
+        delete_restaurant(restaurant_name)
 
-    #     if member == self.bot.user:
-    #         await interaction.response.send_message("Je ne peux pas m'expulser moi-même.", ephemeral=True)
-    #         return
+        await interaction.response.send_message(f"Le restaurant `{restaurant_name}` a été supprimé avec succès.")
 
-    #     await member.send(f"Vous avez été expulsé du serveur {interaction.guild.name} par {interaction.user.name}. Raison : {reason}")
-    #     await member.kick(reason=reason)
-    #     await interaction.response.send_message(f"{member.mention} a été expulsé du serveur.\n> Raison : {reason}")
+    @app_commands.command(name=f"{PREFIX}add_perm_restaurant", description="Ajoute une permission à un rôle pour un restaurant spécifique.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.describe(restaurant_name="Le nom du restaurant")
+    @app_commands.describe(role="Le rôle auquel ajouter la permission")
+    @app_commands.describe(permission="La permission à ajouter")
+    # @app_commands.choices(permission=[app_commands.Choice(name=perm, value=perm) for perm in ALL_TYPES_PERMISSIONS_RESTAURANT])
+    async def add_perm_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, role: discord.Role, permission: str):
+        restaurant = get_all_restaurants().get(restaurant_name)
+        if not restaurant:
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
+
+        if role is None:
+            await interaction.response.send_message(f"Le rôle spécifié n'existe pas.", ephemeral=True)
+            return
+
+        if role.permissions.administrator:
+            await interaction.response.send_message(f"Le rôle `{role.name}` est un rôle administrateur et a déjà toutes les permissions.", ephemeral=True)
+            return
+
+        if role.is_default():
+            await interaction.response.send_message(f"Le rôle `{role.name}` est un rôle spécial et ne peut pas avoir de permissions spécifiques.", ephemeral=True)
+            return
+
+        if permission not in ALL_TYPES_PERMISSIONS_RESTAURANT:
+            sJoin = ">,\n".join(ALL_TYPES_PERMISSIONS_RESTAURANT)
+            await interaction.response.send_message(f"La permission `{permission}` n'est pas valide. Les permissions valides sont : {sJoin}.", ephemeral=True)
+            return
+
+        if role.id in restaurant["permissions"] and permission in restaurant["permissions"][role.id]:
+            await interaction.response.send_message(f"Le rôle `{role.name}` a déjà la permission `{permission}` pour le restaurant `{restaurant_name}`.", ephemeral=True)
+            return
+
+        restaurant_object = Restaurant(**restaurant)
+        restaurant_object.add_permission(role.id, permission)
+        save_restaurant(restaurant_object)
+
+        await interaction.response.send_message(f"La permission `{permission}` a été ajoutée au rôle `{role.name}` pour le restaurant `{restaurant_name}`.")
+
+    @add_perm_restaurant.autocomplete("permission")
+    async def permission_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        name = interaction.namespace.restaurant_name
+        if not name:
+            return []
+        restaurant = get_all_restaurants().get(name)
+        if not restaurant:
+            return []
+
+        role = interaction.namespace.role
+        if role is None or role.id in restaurant["permissions"]:
+            return []
+
+        return [
+            app_commands.Choice(name=perm, value=perm) for perm in ALL_TYPES_PERMISSIONS_RESTAURANT if current.lower() in perm.lower()
+        ][:25]
+
+    @app_commands.command(name=f"{PREFIX}remove_perm_restaurant", description="Supprime une permission d'un rôle pour un restaurant spécifique.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.describe(restaurant_name="Le nom du restaurant")
+    @app_commands.describe(role="Le rôle auquel supprimer la permission")
+    @app_commands.describe(permission="La permission à supprimer")
+    #@app_commands.choices(permission=[app_commands.Choice(name="Toutes les permissions", value="*")] + [app_commands.Choice(name=perm, value=perm) for perm in ALL_TYPES_PERMISSIONS_RESTAURANT])
+
+    async def remove_perm_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, role: discord.Role, permission: str):
+        restaurant = get_all_restaurants().get(restaurant_name)
+        if not restaurant:
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
+
+        if role is None:
+            await interaction.response.send_message(f"Le rôle spécifié n'existe pas.", ephemeral=True)
+            return
+
+        if role.permissions.administrator:
+            await interaction.response.send_message(f"Le rôle `{role.name}` est un rôle administrateur et ne peut pas avoir de permissions spécifiques supprimées.", ephemeral=True)
+            return
+
+        if role.is_default():
+            await interaction.response.send_message(f"Le rôle `{role.name}` est un rôle spécial et ne peut pas avoir de permissions spécifiques supprimées.", ephemeral=True)
+            return
+
+        if permission != "*" and permission not in ALL_TYPES_PERMISSIONS_RESTAURANT:
+            sJoin = ">,\n".join(ALL_TYPES_PERMISSIONS_RESTAURANT)
+            await interaction.response.send_message(f"La permission `{permission}` n'est pas valide. Les permissions valides sont : {sJoin}.", ephemeral=True)
+            return
+
+        if role.id not in restaurant["permissions"] or permission != "*" and permission not in restaurant["permissions"][role.id]:
+            await interaction.response.send_message(f"Le rôle `{role.name}` n'a pas la permission `{permission}` pour le restaurant `{restaurant_name}`.", ephemeral=True)
+            return
+
+        restaurant_object = Restaurant(**restaurant)
+        if permission == "*":
+            del restaurant_object.permissions[role.id]
+        else:
+            restaurant_object.remove_permission(role.id, permission)
+        save_restaurant(restaurant_object)
+
+        if permission == "*":
+            await interaction.response.send_message(f"Toutes les permissions ont été supprimées du rôle `{role.name}` pour le restaurant `{restaurant_name}`.")
+        else:
+            await interaction.response.send_message(f"La permission `{permission}` a été supprimée du rôle `{role.name}` pour le restaurant `{restaurant_name}`.")
+
+    # auto complete the role permission for a restaurant
+    @remove_perm_restaurant.autocomplete("permission")
+    async def permission_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        name = interaction.namespace.restaurant_name
+        if not name:
+            return []
+        restaurant = get_all_restaurants().get(name)
+        if not restaurant:
+            return []
+
+        role = interaction.namespace.role
+        if role is None or role.id not in restaurant["permissions"]:
+            return []
+
+        return ([
+            app_commands.Choice(name="Toutes les permissions", value="*")
+        ] + [
+            app_commands.Choice(name=perm, value=perm) for perm in restaurant["permissions"][role.id] if current.lower() in perm.lower()
+        ])[:25]
+
+    @app_commands.command(name=f"{PREFIX}see_restaurant", description="Affiche les permissions d'un restaurant.")
+    @check_permission_restaurant(param="restaurant_name", permission="view_config")
+    @app_commands.describe(restaurant_name="Le nom du restaurant à afficher")
+    @app_commands.describe(hidden="Si le message doit être visible uniquement par vous (True) ou public (False)")
+    async def see_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, hidden:bool=True):
+        restaurant = get_all_restaurants().get(restaurant_name)
+        if not restaurant:
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
+
+        embed = discord.Embed(title=f"Restaurant: {restaurant['name']}", description=restaurant['description'], color=discord.Color.blue())
+        embed.add_field(name="Type", value=restaurant['type'], inline=False)
+        embed.add_field(name="Location", value=restaurant['location'], inline=False)
+        embed.add_field(name="Reservations", value=str(len(restaurant['reservations'])), inline=False)
+
+        roles_col = []
+        perms_col = []
+
+        for role_id, perms in restaurant["permissions"].items():
+            role = interaction.guild.get_role(int(role_id))
+            roles_col.append(role.mention if role else f"`{role_id}`")
+            perms_col.append(", ".join(f"`{p}`" for p in perms) or "Aucune")
+
+        embed.add_field(name="Rôle", value="\n".join(roles_col) or "Aucun", inline=True)
+        embed.add_field(name="Permissions", value="\n".join(perms_col) or "Aucune", inline=True)
+
+        await interaction.response.send_message(embed=embed, ephemeral=hidden)
+
+    ## ==================
+    ## TYPE
+    ## ==================
+
+    @app_commands.command(name=f"{PREFIX}create_restaurant_type", description="Crée un type de restaurant.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def create_restaurant_type(self, interaction: discord.Interaction, name: str):
+        if is_existing_restaurant_type(name):
+            await interaction.response.send_message(f"Le type de restaurant `{name}` existe déjà.", ephemeral=True)
+            return
+
+        new_restaurant_type = RestaurantType(name)
+        save_restaurant_type(new_restaurant_type)
+
+        await interaction.response.send_message(f"Le type de restaurant `{name}` a été créé avec succès.")
+
+    @app_commands.command(name=f"{PREFIX}delete_restaurant_type", description="Supprime un type de restaurant existant.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def delete_restaurant_type(self, interaction: discord.Interaction, name: RestaurantTypeTransformer):
+        if not is_existing_restaurant_type(name):
+            await interaction.response.send_message(f"Le type de restaurant `{name}` n'existe pas.", ephemeral=True)
+            return
+
+        delete_restaurant_type(name)
+
+        await interaction.response.send_message(f"Le type de restaurant `{name}` a été supprimé avec succès.")
 
 async def setup(bot):
     await bot.add_cog(Config(bot))

@@ -5,6 +5,7 @@ import traceback
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
+from utils.manage_restaurant import load_all_restaurants
 
 load_dotenv()
 
@@ -51,6 +52,7 @@ class RegisterCommands(commands.Cog):
             printMessage("Main", f"Connecté en tant que {self.bot.user}")
             self.bot.tree.copy_global_to(guild=guild)
             self.bot.tree.on_error = self.on_log_error
+            load_all_restaurants()
 
             synced = await self.bot.tree.sync(guild=guild)
             printMessage("RegisterCommands", f"Commandes slash synchronisées : {len(synced)}")
@@ -61,6 +63,10 @@ class RegisterCommands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_log_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.MissingPermissions):
+            await interaction.response.send_message("Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
+            return
+
         printError("RegisterCommands", f"Erreur ({type(error).__name__}) lors de l'exécution de la commande '{interaction.command.name}' : {error}")
         printError("RegisterCommands", f"Traceback : {traceback.format_exc()}")
         await interaction.response.send_message(f"Une erreur est survenue lors de l'exécution de la commande. Si vous êtes un administrateur, veuillez vérifier les logs pour plus d'informations.", ephemeral=True)
