@@ -10,7 +10,7 @@ from utils.manage_permission import check_permission_restaurant
 
 printMessage("Config", "Chargement de l'extension : config")
 
-PREFIX = "config_"
+PREFIX = "cfg_"
 ALL_TYPES_PERMISSIONS_RESTAURANT = [
     "edit_restaurant",
     "view_config",
@@ -20,18 +20,6 @@ ALL_TYPES_PERMISSIONS_RESTAURANT = [
 class Config(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    # TODO: Rework system
-
-    # @app_commands.command(name=f"{PREFIX}set_permission", description="Définit les permissions pour un rôle spécifique.")
-    # @app_commands.checks.has_permissions(administrator=True)
-    # async def set_permission(self, interaction: discord.Interaction, role: discord.Role, permission: str):
-    #     await interaction.response.send_message(f"Les permissions pour le rôle `{role.name}` ont été définies.", ephemeral=True)
-
-    # @app_commands.command(name=f"{PREFIX}add_item", description="Ajoute un item à la liste des items.")
-    # @app_commands.checks.has_permissions(administrator=True)
-    # async def add_item(self, interaction: discord.Interaction, item_name: str):
-    #     await interaction.response.send_message(f"L'item `{item_name}` a été ajouté à la liste des items.", ephemeral=True)
 
     RestaurantNameTransformer = app_commands.Transform[Restaurant, RestaurantTransformer]
     RestaurantTypeTransformer = app_commands.Transform[RestaurantType, RestaurantTypeTransformer]
