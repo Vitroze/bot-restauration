@@ -1,26 +1,28 @@
 import discord
 from .manage_restaurant import get_restaurant_object
 
-def check_permission_restaurant(param:str, permission: str) -> bool:
+def check_permission(param:str, model:callable, callback_check: callable, permission: str) -> callable:
     async def predicate(interaction: discord.Interaction) -> bool:
-        restaurant = getattr(interaction.namespace, param, None)
-        restaurant_object = get_restaurant_object(restaurant)
-        if restaurant_object is None:
-            await interaction.response.send_message(f"Le restaurant '{restaurant}' n'existe pas.", ephemeral=True)
+        any_variable = getattr(interaction.namespace, param, None)
+        object = model(any_variable)
+        if object is None:
+            await interaction.response.send_message(f"Aucun objet trouvé pour la valeur '{any_variable}'.", ephemeral=True)
             return False
 
         user = interaction.user
-        has_permission = False  # Replace with actual permission checking logic
         for role in user.roles:
-            if role.permissions.administrator or restaurant_object.has_permission(role.id, permission):
-                has_permission = True
-                break
+            if role.permissions.administrator or callback_check(user, object, permission):
+                return True
 
-        if not has_permission:
-            await interaction.response.send_message(f"Vous n'avez pas la permission '{permission}' pour le restaurant '{restaurant}'.", ephemeral=True)
-            return False
-
-        return True
-
+        await interaction.response.send_message(f"Vous n'avez pas la permission '{permission}' pour l'objet '{any_variable}'.", ephemeral=True)
+        return False
 
     return discord.app_commands.check(predicate)
+
+def check_permission_restaurant(param:str, permission: str) -> bool:
+    return check_permission(
+        param,
+        get_restaurant_object,
+        lambda user, restaurant, permission: restaurant.has_permission(user.id, permission),
+        permission,
+    )

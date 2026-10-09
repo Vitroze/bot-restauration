@@ -3,6 +3,7 @@ import json
 from models.restaurant import Restaurant, RestaurantType
 import discord
 from discord import app_commands
+import traceback
 
 all_restaurants = []
 def get_all_restaurants():
@@ -28,20 +29,14 @@ def get_all_restaurants():
 
     return restaurants
 
-def get_restaurant_by_id(restaurant_id):
+def get_restaurant_by_name(restaurant_name):
     """
-    Get a restaurant by its ID from the database.
+    Get a restaurant by its name from the database.
     """
-
     restaurants = get_all_restaurants()
+    return restaurants.get(restaurant_name, None)
 
-    for restaurant in restaurants:
-        if restaurant["id"] == restaurant_id:
-            return restaurant
-
-    return None
-
-def save_restaurant(restaurant: Restaurant) -> bool:
+async def save_restaurant(restaurant: Restaurant) -> bool:
     """
     Save a restaurant to the database.
     """
@@ -51,7 +46,7 @@ def save_restaurant(restaurant: Restaurant) -> bool:
 
     with open("data/restaurants.json", "w") as file:
         json.dump(all_restaurants, file, indent=4)
-        load_all_restaurants()
+        await load_all_restaurants()
 
     return True
 
@@ -155,10 +150,7 @@ def is_existing_restaurant_type(restaurant_type_name):
     """
 
     restaurant_types = get_all_restaurant_types()
-    for restaurant_type in restaurant_types:
-        if restaurant_type == restaurant_type_name:
-            return True
-    return False
+    return restaurant_type_name in restaurant_types
 
 def delete_restaurant_type(restaurant_type_name):
     """

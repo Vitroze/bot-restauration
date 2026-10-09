@@ -3,6 +3,7 @@ import os
 
 import discord
 from discord.ext import commands
+from .manage_restaurant import get_all_restaurants
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
@@ -12,12 +13,46 @@ TYPE_TICKET = {
     "❓ Support": None,
 }
 
+class ReservationModal(discord.ui.Modal, title="Réservation"):
+    # option
+    name_restaurant_label = discord.ui.Label(
+        text="Nom du restaurant",
+        component=discord.ui.Select(
+            required=True,
+            placeholder="Sélectionnez un restaurant",
+            options=[
+                discord.SelectOption(label=name, value=name) for name in get_all_restaurants().keys()
+            ],
+        ),
+    )
+
+    date_reservation = discord.ui.TextInput(
+        label="Date de réservation",
+        placeholder="Entrez la date de réservation (ex: 2024-06-15)",
+        required=True
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        restaurant_name = self.name_restaurant_label.value
+        if restaurant_name not in get_all_restaurants():
+            await interaction.response.send_message(f"Le restaurant '{restaurant_name}' n'existe pas.", ephemeral=True)
+            return
+
+        date = self.date_reservation.value
+
+        try:
+            date_obj = discord.utils.parse_time(date)
+        except ValueError:
+            await interaction.response.send_message("Format de date invalide. Veuillez utiliser le format YYYY-MM-DD.", ephemeral=True)
+            return
+
 class TicketSelect(discord.ui.Select):
-    def __init__(self, cog: "Ticket"):
+    def __init__(self, cog: "TicketManager"):
         self.cog = cog
         options = [
             discord.SelectOption(label=name, value=name, description=f"Créer un ticket pour {name}.") for name in TYPE_TICKET.keys()
         ]
+
         super().__init__(
             placeholder="Choisissez un type de ticket",
             options=options,
@@ -47,20 +82,21 @@ class TicketSelect(discord.ui.Select):
             channel = await guild.create_text_channel(
                 f"ticket-{member.name}-{ticket_type.replace(' ', '-')}",
                 topic=topic,
+                overwrites=overwrites,
                 category=category if isinstance(category, discord.CategoryChannel) else None,
             )
 
 
             await channel.send(f"{member.mention}, votre ticket pour {ticket_type} a été créé. Un membre du support vous répondra bientôt.")
             await interaction.followup.send(f"Votre ticket pour {ticket_type} a été créé : {channel.mention}", ephemeral=True)
-        await interaction.message.edit(view=Ticket(self.cog))
+        await interaction.message.edit(view=TicketView(self.cog))
 
 class TicketView(discord.ui.View):
-    def __init__(self, cog: "Ticket"):
+    def __init__(self, cog: "TicketManager"):
         super().__init__(timeout=None)
         self.add_item(TicketSelect(cog))
 
-class Ticket(commands.Cog):
+class TicketManager(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.config_channel: discord.TextChannel | None = None
@@ -173,4 +209,4 @@ class Ticket(commands.Cog):
             await self.send_embed_message(self.config_channel)
 
 async def setup(bot):
-    await bot.add_cog(Ticket(bot))
+    await bot.add_cog(TicketManager(bot))

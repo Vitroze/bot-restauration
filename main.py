@@ -6,7 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from utils.manage_restaurant import load_all_restaurants
-from utils.manage_ticket import Ticket
+from utils.manage_ticket import TicketManager
 
 load_dotenv()
 
@@ -55,7 +55,7 @@ class RegisterCommands(commands.Cog):
             self.bot.tree.on_error = self.on_log_error
             await load_all_restaurants()
 
-            self.ticket_cog = Ticket(self.bot)
+            self.ticket_cog = TicketManager(self.bot)
             await self.bot.add_cog(self.ticket_cog)
 
             synced = await self.bot.tree.sync(guild=guild)

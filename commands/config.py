@@ -28,17 +28,17 @@ class Config(commands.Cog):
 
     @app_commands.command(name=f"{PREFIX}create_restaurant", description="Crée un restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
-    async def create_restaurant(self, interaction: discord.Interaction, name: str, description: str, type: RestaurantTypeTransformer, location: str):
+    async def create_restaurant(self, interaction: discord.Interaction, name: str, description: str, type_restaurant: RestaurantTypeTransformer, location: str):
         if is_existing_restaurant(name):
             await interaction.response.send_message(f"Le restaurant `{name}` existe déjà.", ephemeral=True)
             return
 
-        if not is_existing_restaurant_type(type):
-            await interaction.response.send_message(f"Le type de restaurant `{type}` n'existe pas. Veuillez créer le type de restaurant avant de créer le restaurant.", ephemeral=True)
+        if not is_existing_restaurant_type(type_restaurant.to_name()):
+            await interaction.response.send_message(f"Le type_restaurant de restaurant `{type_restaurant}` n'existe pas. Veuillez créer le type_restaurant de restaurant avant de créer le restaurant.", ephemeral=True)
             return
 
-        new_restaurant = Restaurant(name=name, description=description, type=type, location=location)
-        saved = save_restaurant(new_restaurant)
+        new_restaurant = Restaurant(name=name, description=description, type=type_restaurant.to_name(), location=location)
+        saved = await save_restaurant(new_restaurant)
 
         if not saved:
             await interaction.response.send_message(f"Une erreur est survenue lors de la création du restaurant `{name}`.", ephemeral=True)
@@ -71,7 +71,7 @@ class Config(commands.Cog):
         if new_location:
             restaurant["location"] = new_location
 
-        save_restaurant(Restaurant(**restaurant))
+        await save_restaurant(Restaurant(**restaurant))
         await interaction.response.send_message(f"Le restaurant `{restaurant_name}` a été modifié avec succès.")
 
     @app_commands.command(name=f"{PREFIX}delete_restaurant", description="Supprime un restaurant existant.")
@@ -121,7 +121,7 @@ class Config(commands.Cog):
 
         restaurant_object = Restaurant(**restaurant)
         restaurant_object.add_permission(role.id, permission)
-        save_restaurant(restaurant_object)
+        await save_restaurant(restaurant_object)
 
         await interaction.response.send_message(f"La permission `{permission}` a été ajoutée au rôle `{role.name}` pour le restaurant `{restaurant_name}`.")
 
@@ -181,7 +181,7 @@ class Config(commands.Cog):
             del restaurant_object.permissions[role.id]
         else:
             restaurant_object.remove_permission(role.id, permission)
-        save_restaurant(restaurant_object)
+        await save_restaurant(restaurant_object)
 
         if permission == "*":
             await interaction.response.send_message(f"Toutes les permissions ont été supprimées du rôle `{role.name}` pour le restaurant `{restaurant_name}`.")
@@ -295,11 +295,11 @@ class Config(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
 
-        if self.bot.get_cog("Ticket") is None:
+        if self.bot.get_cog("TicketManager") is None:
             await interaction.response.send_message("Le système de ticket n'est pas initialisé correctement.", ephemeral=True)
             return
 
-        await self.bot.get_cog("Ticket").setup_config_channel(channel)
+        await self.bot.get_cog("TicketManager").setup_config_channel(channel)
         await interaction.followup.send(f"Le salon de ticket a été configuré avec succès : {channel.mention}", ephemeral=True)
 
     @app_commands.command(name=f"{PREFIX}emoji_ticket", description="Configurer l'emoji de ticket pour un restaurant.")
@@ -318,12 +318,12 @@ class Config(commands.Cog):
             await interaction.response.send_message("L'emoji spécifié n'est pas valide. Veuillez fournir un emoji unicode ou un emoji personnalisé du serveur.", ephemeral=True)
             return
 
-        if self.bot.get_cog("Ticket") is None:
+        if self.bot.get_cog("TicketManager") is None:
             await interaction.response.send_message("Le système de ticket n'est pas initialisé correctement.", ephemeral=True)
             return
 
-        self.bot.get_cog("Ticket").config_ticket_emoji = emoji
-        await self.bot.get_cog("Ticket").setup_config_channel(self.bot.get_cog("Ticket").config_channel)
+        self.bot.get_cog("TicketManager").config_ticket_emoji = emoji
+        await self.bot.get_cog("TicketManager").setup_config_channel(self.bot.get_cog("TicketManager").config_channel)
         await interaction.followup.send(f"L'emoji de ticket a été configuré avec succès : {emoji}", ephemeral=True)
 
     @app_commands.command(name=f"{PREFIX}category_ticket", description="Configurer la catégorie de ticket pour un type de ticket.")
@@ -338,12 +338,13 @@ class Config(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
 
-        if self.bot.get_cog("Ticket") is None:
+        if self.bot.get_cog("TicketManager") is None:
             await interaction.response.send_message("Le système de ticket n'est pas initialisé correctement.", ephemeral=True)
             return
 
         TYPE_TICKET[ticket_type] = category.id
-        await self.bot.get_cog("Ticket").setup_config_channel(self.bot.get_cog("Ticket").config_channel)
+        await self.bot.get_cog("TicketManager").setup_config_channel(self.bot.get_cog("TicketManager").config_channel)
         await interaction.followup.send(f"La catégorie pour le type de ticket `{ticket_type}` a été configurée avec succès : {category.mention}", ephemeral=True)
+
 async def setup(bot):
     await bot.add_cog(Config(bot))
