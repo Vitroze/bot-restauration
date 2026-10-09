@@ -15,26 +15,26 @@ class ReservationModal(discord.ui.Modal, title="Réservation"):
         super().__init__()
         self.bot = bot
 
-    name_restaurant_label = discord.ui.Label(
-        text="Nom du restaurant",
-        component=discord.ui.Select(
-            required=True,
-            placeholder="Sélectionnez un restaurant",
-            options=[
-                discord.SelectOption(label=name, value=name)
-                for name in get_all_restaurants().keys()
-            ],
-        ),
-    )
+        names = sorted(get_all_restaurants().keys(), key=str.lower)[:25]  # 25 options max
+        self.name_restaurant_label = discord.ui.Label(
+            text="Nom du restaurant",
+            component=discord.ui.Select(
+                required=True,
+                placeholder="Sélectionnez un restaurant",
+                options=[discord.SelectOption(label=n[:100], value=n[:100]) for n in names],
+            ),
+        )
 
-    date_reservation = discord.ui.TextInput(
-        label="Date de réservation (DD/MM/YYYY)",
-        placeholder=(
-            f"Entrez la date de réservation "
-            f"(ex: {(datetime.now(TZ) + timedelta(days=1)).strftime('%d/%m/%Y')})"
-        ),
-        required=True,
-    )
+        tomorrow = (datetime.now(TZ) + timedelta(days=1)).strftime("%d/%m/%Y")
+        self.date_reservation = discord.ui.TextInput(
+            label="Date de réservation (DD/MM/YYYY)",
+            placeholder=f"Entrez la date de réservation (ex: {tomorrow})",
+            required=True,
+        )
+
+        # L'ordre d'ajout = l'ordre d'affichage
+        self.add_item(self.name_restaurant_label)
+        self.add_item(self.date_reservation)
 
     async def on_submit(self, interaction: discord.Interaction):
         restaurant_name = self.name_restaurant_label.component.values[0]
