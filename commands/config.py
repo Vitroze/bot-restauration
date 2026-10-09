@@ -146,45 +146,6 @@ class Config(commands.Cog):
         )
 
     @app_commands.command(
-        name=f"{PREFIX}emoji_ticket",
-        description="Configurer l'emoji de ticket pour un restaurant.",
-    )
-    @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.describe(emoji="L'emoji à configurer pour les tickets")
-    async def setup_ticket_emoji(self, interaction: discord.Interaction, emoji: str):
-        if self.bot is None:
-            await interaction.response.send_message(
-                "Le bot n'est pas initialisé correctement.", ephemeral=True
-            )
-            return
-
-        await interaction.response.defer(ephemeral=True)
-
-        # Vérifier si c'est un emoji valide (unicode ou custom)
-        is_emoji_valid = await is_valid_emoji(self, emoji)
-        if not is_emoji_valid:
-            await interaction.response.send_message(
-                "L'emoji spécifié n'est pas valide. Veuillez fournir un emoji unicode "
-                "ou un emoji personnalisé du serveur.",
-                ephemeral=True,
-            )
-            return
-
-        if self.bot.get_cog("TicketManager") is None:
-            await interaction.response.send_message(
-                "Le système de ticket n'est pas initialisé correctement.", ephemeral=True
-            )
-            return
-
-        self.bot.get_cog("TicketManager").config_ticket_emoji = emoji
-        await self.bot.get_cog("TicketManager").setup_config_channel(
-            self.bot.get_cog("TicketManager").config_channel
-        )
-        await interaction.followup.send(
-            f"L'emoji de ticket a été configuré avec succès : {emoji}", ephemeral=True
-        )
-
-    @app_commands.command(
         name=f"{PREFIX}category_ticket",
         description="Configurer la catégorie de ticket pour un type de ticket.",
     )
