@@ -38,80 +38,143 @@ class EditPermissionRestaurantView(discord.ui.View):
         super().__init__(timeout=120)
         self.parent = parent
         self.restaurant_name = restaurant_name
+        self.guild = guild
         self.remove = remove
         self.role_id: int | None = None
         self.permission_id: str | None = None
+        self.rebuild()
 
-        # Discord limite un Select à 25 options
-        roles = [r for r in guild.roles if r.id != guild.id and not r.managed][-25:]
-        role_select = discord.ui.Select(
+    def _configured(self) -> dict:
+        restaurant = get_all_restaurants().get(self.restaurant_name) or {}
+        return restaurant.get("permissions", {})
+
+    def available_roles(self) -> list[discord.Role]:
+        configured = self._configured()
+        total = len(ALL_TYPES_PERMISSIONS_RESTAURANT)
+        roles = []
+        for role in reversed(self.guild.roles):
+            if role.is_default():
+                continue
+
+            role_perms = configured.get(role.id, [])
+            if self.remove:
+                if role_perms:
+                    roles.append(role)
+            else:
+                if not role.managed and len(role_perms) < total:
+                    roles.append(role)
+        return roles
+
+    def available_permissions(self) -> list[str]:
+        if self.role_id is None:
+            return []
+        role_perms = self._configured().get(self.role_id, [])
+        if self.remove:
+            return [p for p in ALL_TYPES_PERMISSIONS_RESTAURANT if p in role_perms]
+        return [p for p in ALL_TYPES_PERMISSIONS_RESTAURANT if p not in role_perms]
+
+    # ---------- Composants ----------
+    def rebuild(self):
+        self.clear_items()
+
+        role_select = discord.ui.RoleSelect(
             placeholder="Sélectionne un rôle...",
-            options=[discord.SelectOption(label=r.name[:100], value=str(r.id)) for r in roles],
+            default_values=(
+                [discord.Object(id=self.role_id, type=discord.Role)]
+                if self.role_id is not None else []
+            ),
             row=0,
         )
         role_select.callback = self.on_role
         self.add_item(role_select)
 
-        perm_select = discord.ui.Select(
-            placeholder="Sélectionne une permission...",
-            options=[
-                discord.SelectOption(label=perm_id[:100], value=perm_id, description=desc[:100])
-                for perm_id, desc in ALL_TYPES_PERMISSIONS_RESTAURANT.items()
-            ],
-            row=1,
-        )
-        perm_select.callback = self.on_perm
-        self.add_item(perm_select)
+        if self.role_id is not None:
+            perm_select = discord.ui.Select(
+                placeholder="Sélectionne une permission...",
+                options=[
+                    discord.SelectOption(
+                        label=perm_id[:100],
+                        value=perm_id,
+                        description=ALL_TYPES_PERMISSIONS_RESTAURANT[perm_id][:100],
+                        default=(perm_id == self.permission_id),
+                    )
+                    for perm_id in self.available_permissions()
+                ],
+                row=1,
+            )
+            perm_select.callback = self.on_perm
+            self.add_item(perm_select)
 
         confirm = discord.ui.Button(
-            label="Retirer" if remove else "Ajouter",
-            style=discord.ButtonStyle.danger if remove else discord.ButtonStyle.success,
+            label="Retirer" if self.remove else "Ajouter",
+            style=discord.ButtonStyle.danger if self.remove else discord.ButtonStyle.success,
+            disabled=self.role_id is None or self.permission_id is None,
             row=2,
         )
         confirm.callback = self.on_confirm
         self.add_item(confirm)
 
+    # ---------- Callbacks ----------
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user.id == self.parent.author_id
+        if interaction.user.id != self.parent.author_id:
+            await interaction.response.send_message("Seul l'auteur de la commande peut utiliser ceci.", ephemeral=True)
+            return False
+        return True
 
     async def on_role(self, interaction: discord.Interaction):
-        self.role_id = int(interaction.data["values"][0])
-        await interaction.response.defer()
+        role_id = int(interaction.data["values"][0])
+        self.role_id = role_id
+        self.permission_id = None
+        if not self.available_permissions():
+            self.role_id = None
+            self.rebuild()
+            msg = ("Ce rôle n'a aucune permission configurée."
+                if self.remove else "Ce rôle a déjà toutes les permissions.")
+            await interaction.response.edit_message(content=f"❌ {msg}", view=self)
+            return
+        self.rebuild()
+        await interaction.response.edit_message(content=None, view=self)
 
     async def on_perm(self, interaction: discord.Interaction):
         self.permission_id = interaction.data["values"][0]
-        await interaction.response.defer()
+        self.rebuild()
+        await interaction.response.edit_message(view=self)
 
     async def on_confirm(self, interaction: discord.Interaction):
-        if self.role_id is None or self.permission_id is None:
-            await interaction.response.send_message("Choisis un rôle ET une permission.", ephemeral=True)
-            return
-
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:
             await interaction.response.edit_message(content="Ce restaurant n'existe plus.", view=None)
             return
 
         perms = restaurant.setdefault("permissions", {})
-        key = str(self.role_id)
+        key = self.role_id
 
         if self.remove:
-            if self.permission_id not in perms.get(key, []):
-                await interaction.response.edit_message(content="❌ Cette permission n'est pas configurée pour ce rôle.", view=None)
-                return
-            perms[key].remove(self.permission_id)
-            if not perms[key]:
-                del perms[key]
-            msg = "✅ Permission supprimée pour le rôle."
+            if self.permission_id in perms.get(key, []):
+                perms[key].remove(self.permission_id)
+                if not perms[key]:
+                    del perms[key]
+
+            msg = f"✅ Permission `{self.permission_id}` retirée pour <@&{self.role_id}>."
         else:
-            if self.permission_id in perms.setdefault(key, []):
-                await interaction.response.edit_message(content="❌ Cette permission est déjà configurée pour ce rôle.", view=None)
-                return
-            perms[key].append(self.permission_id)
-            msg = "✅ Permission ajoutée pour le rôle."
+            role_perms = perms.setdefault(key, [])
+            if self.permission_id not in role_perms:
+                role_perms.append(self.permission_id)
+            msg = f"✅ Permission `{self.permission_id}` ajoutée pour <@&{self.role_id}>."
 
         await save_restaurant(Restaurant(**restaurant))
-        await interaction.response.edit_message(content=msg, view=None)
+        await self.parent.refresh_message()
+
+        self.role_id = None
+        self.permission_id = None
+
+        if not self.available_roles():
+            end = "Plus aucun rôle à retirer." if self.remove else "Tous les rôles ont déjà toutes les permissions."
+            await interaction.response.edit_message(content=f"{msg}\n{end}", view=None)
+            return
+
+        self.rebuild()
+        await interaction.response.edit_message(content=msg, view=self)
 
 class EditRestaurantModal(discord.ui.Modal):
     def __init__(self, view: "ConfigRestaurantView", restaurant: dict):
@@ -179,6 +242,7 @@ class ConfigRestaurantView(discord.ui.View):
         self.mode = "list"                 # "list" | "detail" | "confirm"
         self.selected: str | None = None   # nom du restaurant sélectionné
         self.message: discord.Message | None = None
+        self.origin: discord.Interaction | None = None
         self.rebuild()
 
     # ---------- Données ----------
@@ -238,7 +302,13 @@ class ConfigRestaurantView(discord.ui.View):
         embed.add_field(name="Localisation", value=restaurant.get("location", "N/A"), inline=True)
         embed.add_field(name="Plats au menu", value=str(len(restaurant.get("menu", []))), inline=True)
         embed.add_field(name="Réservations", value=str(len(restaurant.get("reservations", []))), inline=True)
-        embed.add_field(name="Rôles configurés", value=str(len(restaurant.get("permissions", {}))), inline=True)
+
+        count_permissions = len(restaurant.get("permissions", {}))
+        if count_permissions == 0:
+            embed.add_field(name="Rôles configurés", value="Aucun", inline=True)
+        else:
+            all_roles = [f"<@&{role_id}>" for role_id in restaurant.get("permissions", {}).keys()]
+            embed.add_field(name="Rôles configurés", value=f"{count_permissions} ({', '.join(all_roles)})", inline=True)
 
         if self.mode == "confirm":
             embed.add_field(
@@ -322,6 +392,16 @@ class ConfigRestaurantView(discord.ui.View):
         self.rebuild()
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
 
+    async def refresh_message(self):
+        self.rebuild()
+        try:
+            if self.origin:
+                await self.origin.edit_original_response(embed=self.build_embed(), view=self)
+            elif self.message:
+                await self.message.edit(embed=self.build_embed(), view=self)
+        except discord.HTTPException as e:
+            print(f"Erreur refresh_message : {e!r}")
+
     async def on_select(self, interaction: discord.Interaction):
         self.selected = interaction.data["values"][0]
         self.mode = "detail"
@@ -353,7 +433,11 @@ class ConfigRestaurantView(discord.ui.View):
         if not restaurant:
             await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
             return
+
         view = EditPermissionRestaurantView(self, restaurant["name"], interaction.guild, remove=False)
+        if not view.available_roles():
+            await interaction.response.send_message("Tous les rôles ont déjà toutes les permissions.", ephemeral=True)
+            return
         await interaction.response.send_message("Ajouter une permission à un rôle :", view=view, ephemeral=True)
 
     async def on_remove_permission(self, interaction: discord.Interaction):
@@ -361,7 +445,11 @@ class ConfigRestaurantView(discord.ui.View):
         if not restaurant:
             await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
             return
+
         view = EditPermissionRestaurantView(self, restaurant["name"], interaction.guild, remove=True)
+        if not view.available_roles():
+            await interaction.response.send_message("Aucun rôle n'a de permission configurée.", ephemeral=True)
+            return
         await interaction.response.send_message("Retirer une permission à un rôle :", view=view, ephemeral=True)
 
     async def on_delete(self, interaction: discord.Interaction):
@@ -394,8 +482,10 @@ class ConfigRestaurantView(discord.ui.View):
     async def on_timeout(self):
         for child in self.children:
             child.disabled = True
-        if self.message:
-            try:
+        try:
+            if self.origin:
+                await self.origin.edit_original_response(view=self)
+            elif self.message:
                 await self.message.edit(view=self)
-            except discord.HTTPException:
-                pass
+        except discord.HTTPException as e:
+            pass

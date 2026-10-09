@@ -39,6 +39,7 @@ class Config(commands.Cog):
     async def manage_restaurant(self, interaction: discord.Interaction):
         view = ConfigRestaurantView(interaction.user.id)
         await interaction.response.send_message(embed=view.build_embed(), view=view, ephemeral=True)
+        view.origin = interaction
         view.message = await interaction.original_response()
 
     @app_commands.command(name=f"{PREFIX}vresto_create", description="Crée un restaurant.")
