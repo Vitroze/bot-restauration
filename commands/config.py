@@ -13,16 +13,16 @@ from utils.manage_ticket import TYPE_TICKET
 printMessage("Config", "Chargement de l'extension : config")
 
 PREFIX = "cfg_"
-ALL_TYPES_PERMISSIONS_RESTAURANT = [
-    "edit_restaurant",
-    "view_config",
-    "manage_reservations",
-    "see_reservations",
-    "manage_tickets",
-    "add_item_menu",
-    "edit_item_menu",
-    "remove_item_menu",
-]
+ALL_TYPES_PERMISSIONS_RESTAURANT = {
+    "edit_restaurant": "Modifier les informations du restaurant",
+    "view_config": "Voir la configuration du restaurant",
+    "manage_reservations": "Gérer les réservations du restaurant",
+    "see_reservations": "Voir les réservations du restaurant",
+    "manage_tickets": "Gérer les tickets du restaurant",
+    "add_item_menu": "Ajouter un item au menu d'un restaurant",
+    "edit_item_menu": "Modifier un item du menu d'un restaurant",
+    "remove_item_menu": "Supprimer un item du menu d'un restaurant",
+}
 
 @app_commands.guild_only()
 class Config(commands.Cog):
@@ -32,7 +32,7 @@ class Config(commands.Cog):
     RestaurantNameTransformer = app_commands.Transform[Restaurant, RestaurantTransformer]
     RestaurantTypeTransformer = app_commands.Transform[RestaurantType, RestaurantTypeTransformer]
 
-    @app_commands.command(name=f"{PREFIX}create_restaurant", description="Crée un restaurant.")
+    @app_commands.command(name=f"{PREFIX}vresto_create", description="Crée un restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
     async def create_restaurant(self, interaction: discord.Interaction, name: str, description: str, type_restaurant: RestaurantTypeTransformer, location: str):
         if is_existing_restaurant(name):
@@ -52,7 +52,7 @@ class Config(commands.Cog):
 
         await interaction.response.send_message(f"Le restaurant `{name}` a été créé avec succès.")
 
-    @app_commands.command(name=f"{PREFIX}edit_restaurant", description="Modifie un restaurant existant.")
+    @app_commands.command(name=f"{PREFIX}vresto_edit", description="Modifie un restaurant existant.")
     #@app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(restaurant_name="Le nom du restaurant à modifier")
     @app_commands.describe(new_description="La nouvelle description du restaurant")
@@ -80,7 +80,7 @@ class Config(commands.Cog):
         await save_restaurant(Restaurant(**restaurant))
         await interaction.response.send_message(f"Le restaurant `{restaurant_name}` a été modifié avec succès.")
 
-    @app_commands.command(name=f"{PREFIX}delete_restaurant", description="Supprime un restaurant existant.")
+    @app_commands.command(name=f"{PREFIX}vresto_delete", description="Supprime un restaurant existant.")
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(restaurant_name="Le nom du restaurant à supprimer")
     async def delete_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer):
@@ -92,12 +92,11 @@ class Config(commands.Cog):
 
         await interaction.response.send_message(f"Le restaurant `{restaurant_name}` a été supprimé avec succès.")
 
-    @app_commands.command(name=f"{PREFIX}add_perm_restaurant", description="Ajoute une permission à un rôle pour un restaurant spécifique.")
+    @app_commands.command(name=f"{PREFIX}vresto_add_perm", description="Ajoute une permission à un rôle pour un restaurant spécifique.")
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(restaurant_name="Le nom du restaurant")
     @app_commands.describe(role="Le rôle auquel ajouter la permission")
     @app_commands.describe(permission="La permission à ajouter")
-    # @app_commands.choices(permission=[app_commands.Choice(name=perm, value=perm) for perm in ALL_TYPES_PERMISSIONS_RESTAURANT])
     async def add_perm_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, role: discord.Role, permission: str):
         restaurant = get_all_restaurants().get(restaurant_name)
         if not restaurant:
@@ -116,8 +115,8 @@ class Config(commands.Cog):
             await interaction.response.send_message(f"Le rôle `{role.name}` est un rôle spécial et ne peut pas avoir de permissions spécifiques.", ephemeral=True)
             return
 
-        if permission not in ALL_TYPES_PERMISSIONS_RESTAURANT:
-            sJoin = ">,\n".join(ALL_TYPES_PERMISSIONS_RESTAURANT)
+        if permission not in ALL_TYPES_PERMISSIONS_RESTAURANT.keys():
+            sJoin = ">,\n".join(ALL_TYPES_PERMISSIONS_RESTAURANT.keys())
             await interaction.response.send_message(f"La permission `{permission}` n'est pas valide. Les permissions valides sont : {sJoin}.", ephemeral=True)
             return
 
@@ -144,16 +143,18 @@ class Config(commands.Cog):
         if role is None or role.id in restaurant["permissions"]:
             return []
 
+        # Add description
         return [
-            app_commands.Choice(name=perm, value=perm) for perm in ALL_TYPES_PERMISSIONS_RESTAURANT if current.lower() in perm.lower()
+            app_commands.Choice(name=f"{perm} - {desc}"[:100], value=perm)
+            for perm, desc in ALL_TYPES_PERMISSIONS_RESTAURANT.items()
+            if current.lower() in f"{perm} {desc}".lower()
         ][:25]
 
-    @app_commands.command(name=f"{PREFIX}remove_perm_restaurant", description="Supprime une permission d'un rôle pour un restaurant spécifique.")
+    @app_commands.command(name=f"{PREFIX}vresto_remove_perm", description="Supprime une permission d'un rôle pour un restaurant spécifique.")
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(restaurant_name="Le nom du restaurant")
     @app_commands.describe(role="Le rôle auquel supprimer la permission")
     @app_commands.describe(permission="La permission à supprimer")
-    #@app_commands.choices(permission=[app_commands.Choice(name="Toutes les permissions", value="*")] + [app_commands.Choice(name=perm, value=perm) for perm in ALL_TYPES_PERMISSIONS_RESTAURANT])
 
     async def remove_perm_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, role: discord.Role, permission: str):
         restaurant = get_all_restaurants().get(restaurant_name)
@@ -173,8 +174,8 @@ class Config(commands.Cog):
             await interaction.response.send_message(f"Le rôle `{role.name}` est un rôle spécial et ne peut pas avoir de permissions spécifiques supprimées.", ephemeral=True)
             return
 
-        if permission != "*" and permission not in ALL_TYPES_PERMISSIONS_RESTAURANT:
-            sJoin = ">,\n".join(ALL_TYPES_PERMISSIONS_RESTAURANT)
+        if permission != "*" and permission not in ALL_TYPES_PERMISSIONS_RESTAURANT.keys():
+            sJoin = ">,\n".join(ALL_TYPES_PERMISSIONS_RESTAURANT.keys())
             await interaction.response.send_message(f"La permission `{permission}` n'est pas valide. Les permissions valides sont : {sJoin}.", ephemeral=True)
             return
 
@@ -214,7 +215,7 @@ class Config(commands.Cog):
             app_commands.Choice(name=perm, value=perm) for perm in restaurant["permissions"][role.id] if current.lower() in perm.lower()
         ])[:25]
 
-    @app_commands.command(name=f"{PREFIX}see_restaurant", description="Affiche les permissions d'un restaurant.")
+    @app_commands.command(name=f"{PREFIX}vresto_see", description="Affiche les permissions d'un restaurant.")
     @check_permission_restaurant(param="restaurant_name", permission="view_config")
     @app_commands.describe(restaurant_name="Le nom du restaurant à afficher")
     @app_commands.describe(hidden="Si le message doit être visible uniquement par vous (True) ou public (False)")
@@ -246,7 +247,7 @@ class Config(commands.Cog):
     ## TYPE
     ## ==================
 
-    @app_commands.command(name=f"{PREFIX}create_restaurant_type", description="Crée un type de restaurant.")
+    @app_commands.command(name=f"{PREFIX}vresto_create_type", description="Crée un type de restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
     async def create_restaurant_type(self, interaction: discord.Interaction, name: str):
         if is_existing_restaurant_type(name):
@@ -258,7 +259,7 @@ class Config(commands.Cog):
 
         await interaction.response.send_message(f"Le type de restaurant `{name}` a été créé avec succès.")
 
-    @app_commands.command(name=f"{PREFIX}delete_restaurant_type", description="Supprime un type de restaurant existant.")
+    @app_commands.command(name=f"{PREFIX}vresto_delete_type", description="Supprime un type de restaurant existant.")
     @app_commands.checks.has_permissions(administrator=True)
     async def delete_restaurant_type(self, interaction: discord.Interaction, name: RestaurantTypeTransformer):
         if not is_existing_restaurant_type(name):
@@ -291,7 +292,7 @@ class Config(commands.Cog):
 
         return bool(emoji) and not emoji.isascii()
 
-    @app_commands.command(name=f"{PREFIX}channel_ticket", description="Configurer le salon de ticket pour un restaurant.")
+    @app_commands.command(name=f"{PREFIX}vresto_channel_ticket", description="Configurer le salon de ticket pour un restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(channel="Le salon à configurer pour les tickets")
     async def setup_ticket_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
@@ -308,7 +309,7 @@ class Config(commands.Cog):
         await self.bot.get_cog("TicketManager").setup_config_channel(channel)
         await interaction.followup.send(f"Le salon de ticket a été configuré avec succès : {channel.mention}", ephemeral=True)
 
-    @app_commands.command(name=f"{PREFIX}emoji_ticket", description="Configurer l'emoji de ticket pour un restaurant.")
+    @app_commands.command(name=f"{PREFIX}vresto_emoji_ticket", description="Configurer l'emoji de ticket pour un restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(emoji="L'emoji à configurer pour les tickets")
     async def setup_ticket_emoji(self, interaction: discord.Interaction, emoji: str):
@@ -332,7 +333,7 @@ class Config(commands.Cog):
         await self.bot.get_cog("TicketManager").setup_config_channel(self.bot.get_cog("TicketManager").config_channel)
         await interaction.followup.send(f"L'emoji de ticket a été configuré avec succès : {emoji}", ephemeral=True)
 
-    @app_commands.command(name=f"{PREFIX}category_ticket", description="Configurer la catégorie de ticket pour un type de ticket.")
+    @app_commands.command(name=f"{PREFIX}vresto_category_ticket", description="Configurer la catégorie de ticket pour un type de ticket.")
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(ticket_type="Le type de ticket à configurer")
     @app_commands.describe(category="La catégorie à configurer pour le type de ticket")
