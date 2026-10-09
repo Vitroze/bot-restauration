@@ -1,13 +1,9 @@
-import asyncio
-import math
 import discord
 from discord import app_commands
 from discord.ext import commands
 from models.restaurant import Restaurant
 from utils.manage_restaurant import RestaurantTransformer
-
 from ui.menu import MenuUI
-from utils.function_utils import to_float, format_price
 
 class Menu(commands.Cog):
     def __init__(self, bot):
@@ -31,7 +27,6 @@ class Menu(commands.Cog):
         view = MenuUI(restaurant, restaurant.menu, interaction.user.id)
         await interaction.response.send_message(embed=view.build_embed(), view=view)
         view.message = await interaction.original_response()
-
 
 async def setup(bot):
     await bot.add_cog(Menu(bot))

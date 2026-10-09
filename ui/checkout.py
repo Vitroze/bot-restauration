@@ -1,11 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import re
 import traceback
 import discord
 from models.restaurant import Restaurant
-from commands.menu import MenuUI
 from utils.function_utils import format_price
 from ui.order_ticket import OrderView
 from utils.logger import printError
+if TYPE_CHECKING:
+    from ui.menu import MenuUI
 
 def slugify(text: str) -> str:
     """Convertit un texte en un slug utilisable pour les noms de salons Discord."""

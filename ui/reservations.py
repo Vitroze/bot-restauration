@@ -1,7 +1,7 @@
 import discord
 from datetime import timedelta, datetime, time
 from zoneinfo import ZoneInfo
-from logging import printError
+from utils.logger import printError
 from utils.manage_restaurant import get_all_restaurants
 from utils.manage_reservations import add_reservation
 
