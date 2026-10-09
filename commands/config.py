@@ -16,6 +16,8 @@ PREFIX = "cfg_"
 ALL_TYPES_PERMISSIONS_RESTAURANT = [
     "edit_restaurant",
     "view_config",
+    "manage_reservations",
+    "see_reservations",
 ]
 
 @app_commands.guild_only()
