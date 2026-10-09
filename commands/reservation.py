@@ -71,7 +71,7 @@ class Reservations(commands.Cog):
     @app_commands.command(name="annuler_reservation", description="Annuler une réservation.")
     @app_commands.describe(restaurant="Nom du restaurant", date="Date de réservation (DD/MM/YYYY)")
     async def annuler_reservation(
-        self, interaction: discord.Interaction, restaurant: str, date: str
+        self, interaction: discord.Interaction, restaurant: RestaurantTransformer, date: str
     ):
         user_id = interaction.user.id
         _, message = await remove_reservation(restaurant, date, user_id)
