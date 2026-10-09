@@ -2,6 +2,8 @@ import discord
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 from discord.ext import tasks, commands
+from utils.logger import printMessage, printError, printLog
+import traceback
 
 from utils.manage_reservations import get_all_reservations, save_reservations_to_file
 
@@ -89,11 +91,11 @@ class Rappel(commands.Cog):
             embed.set_footer(text="Ceci est un rappel pour votre réservation.")
             await user.send(embed=embed)
         except discord.NotFound:
-            print(f"Utilisateur {res['user_id']} introuvable.")
+            printError("Rappel", f"Utilisateur {res['user_id']} introuvable.")
         except discord.Forbidden:
-            print(f"MP fermés pour l'utilisateur {res['user_id']}.")
+            printError("Rappel", f"MP fermés pour l'utilisateur {res['user_id']}.")
         except discord.HTTPException as e:
-            print(f"Erreur d'envoi du rappel : {e!r}")
+            printError("Rappel", f"Erreur d'envoi du rappel : {e!r}")
 
     @check_reservations.before_loop
     async def before_check_reservations(self):
@@ -101,7 +103,8 @@ class Rappel(commands.Cog):
 
     @check_reservations.error
     async def check_reservations_error(self, error):
-        print(f"La boucle de rappel a planté : {error!r}")
+        printError("Rappel", f"La boucle de rappel a planté : {error!r}")
+        printError("Rappel", f"Traceback : {traceback.format_exc()}")
 # Setup
 async def setup(bot):
     await bot.add_cog(Rappel(bot))

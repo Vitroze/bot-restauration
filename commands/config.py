@@ -4,7 +4,7 @@ from pyexpat.errors import messages
 import discord
 from discord import app_commands
 from discord.ext import commands
-from main import printMessage
+from utils.logger import printMessage, printError, printLog
 from utils.manage_restaurant import *
 from models.restaurant import Restaurant, RestaurantType
 from utils.manage_permission import check_permission_restaurant
@@ -54,7 +54,6 @@ class Config(commands.Cog):
         await interaction.response.send_message(f"Le restaurant `{name}` a été créé avec succès.")
 
     @app_commands.command(name=f"{PREFIX}vresto_edit", description="Modifie un restaurant existant.")
-    #@app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(restaurant_name="Le nom du restaurant à modifier")
     @app_commands.describe(new_description="La nouvelle description du restaurant")
     @app_commands.describe(new_type="Le nouveau type du restaurant")
@@ -398,7 +397,6 @@ class Config(commands.Cog):
             return
 
         if getattr(restaurant, 'menu', None):
-            print(restaurant)
             restaurant['menu'] = []
 
         if any(item['name'].lower() == item_name.lower() for item in restaurant['menu']):

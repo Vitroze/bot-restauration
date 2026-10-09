@@ -8,34 +8,15 @@ from dotenv import load_dotenv
 from utils.manage_restaurant import load_all_restaurants
 from utils.manage_ticket import TicketManager
 from models.rappels import Rappel
+from utils.logger import printMessage, printError, printLog
 
 load_dotenv()
-
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.messages = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-def printMessage(MODULE, message):
-    print(f"{bcolors.OKGREEN}[VitrozeRestauration - {MODULE}] {message}{bcolors.ENDC}")
-
-def printError(MODULE, message):
-    print(f"{bcolors.FAIL}[VitrozeRestauration - {MODULE}] [ERREUR] : {message}{bcolors.ENDC}")
-
-def printLog(MODULE, message):
-    print(f"{bcolors.OKBLUE}[VitrozeBot - {MODULE}] [LOG] : {message}{bcolors.ENDC}")
 
 #OWNER_ID = 348537418045194250
 

@@ -1,13 +1,11 @@
 import discord
-from discord.ext import tasks, commands
 from datetime import timedelta, datetime, time
 from zoneinfo import ZoneInfo
-
-
-TZ = ZoneInfo("Europe/Paris")
-
+from logging import printError
 from utils.manage_restaurant import get_all_restaurants
 from utils.manage_reservations import add_reservation
+
+TZ = ZoneInfo("Europe/Paris")
 
 class ReservationModal(discord.ui.Modal, title="Réservation"):
     def __init__(self, bot):
@@ -73,4 +71,4 @@ class ReservationModal(discord.ui.Modal, title="Réservation"):
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
         await interaction.response.send_message("Une erreur est survenue lors de la soumission du formulaire.", ephemeral=True)
-        print(f"Erreur lors de la soumission du formulaire: {error}")
+        printError("Reservations", f"Erreur lors de la soumission du formulaire: {error}")

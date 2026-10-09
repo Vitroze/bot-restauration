@@ -1,9 +1,11 @@
 import re
+import traceback
 import discord
 from models.restaurant import Restaurant
 from commands.menu import MenuUI
 from utils.function_utils import format_price
 from ui.order_ticket import OrderView
+from utils.logger import printError
 
 def slugify(text: str) -> str:
     """Convertit un texte en un slug utilisable pour les noms de salons Discord."""
@@ -129,7 +131,8 @@ class CheckoutModal(discord.ui.Modal):
         await interaction.followup.send(f"✅ Commande envoyée ! Suis-la ici : {channel.mention}", ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        print(f"Erreur modal paiement : {error!r}")
+        printError("Checkout", f"Erreur modal paiement : {error!r}")
+        printError("Checkout", f"Traceback : {traceback.format_exc()}")
         if interaction.response.is_done():
             await interaction.followup.send("Une erreur est survenue.", ephemeral=True)
         else:

@@ -3,7 +3,7 @@ import os
 
 import discord
 from discord.ext import commands
-from .manage_restaurant import get_all_restaurants
+from .logger import printMessage, printError
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
@@ -107,7 +107,7 @@ class TicketManager(commands.Cog):
         try:
             channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         except (discord.NotFound, discord.Forbidden):
-            print(f"Salon {channel_id} introuvable ou inaccessible.")
+            printError("TicketManager", f"Salon {channel_id} introuvable ou inaccessible.")
             return
 
         ticket_config = config.get("type_ticket", {})
@@ -119,16 +119,16 @@ class TicketManager(commands.Cog):
                 TYPE_TICKET[ticket_type] = category_id
 
         self.config_channel = channel
-        print(f"Salon de ticket chargé : {channel.name} (ID: {channel.id})")
+        printMessage("TicketManager", f"Salon de ticket chargé : {channel.name} (ID: {channel.id})")
         self.config_ticket_emoji = emoji
         try:
             await channel.fetch_message(message_id)
             self.config_message_id = message_id
         except discord.NotFound:
-            print(f"Message {message_id} introuvable, recréation.")
+            printError("TicketManager", f"Message {message_id} introuvable, recréation.")
             await self.send_embed_message(channel)
         except discord.Forbidden:
-            print(f"Pas l'accès au message {message_id}.")
+            printError("TicketManager", f"Pas l'accès au message {message_id}.")
 
     async def _delete_previous_message(self):
         if self.config_channel is None or self.config_message_id is None:
