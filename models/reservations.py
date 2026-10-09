@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 TZ = ZoneInfo("Europe/Paris")
 
 from utils.manage_restaurant import get_all_restaurants
-from utils.manage_reservations import add_reservation, remove_reservation, get_all_reservations
+from utils.manage_reservations import add_reservation
 
 class ReservationModal(discord.ui.Modal, title="Réservation"):
     def __init__(self, bot):

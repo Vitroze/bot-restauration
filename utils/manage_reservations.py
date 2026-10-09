@@ -43,6 +43,11 @@ async def get_all_reservations():
     except json.JSONDecodeError:
         return []
 
+async def get_all_reservations_by_restaurant(name_restaurant: str):
+    reservations = await get_all_reservations()
+    restaurant_reservations = [res for res in reservations if res['name_restaurant'] == name_restaurant]
+    return restaurant_reservations
+
 async def remove_reservation(name_restaurant: str, date_reservation: str, user_id: int):
     global all_reservations
     all_reservations = await get_all_reservations()
@@ -58,7 +63,7 @@ async def save_reservations_to_file():
     with open("data/reservations.json", "w") as file:
         json.dump(all_reservations, file, indent=4)
 
-async def get_reservations_by_user(user_id: int):
+async def get_reservations_by_user(user_id: int, name_restaurant: str = None):
     reservations = await get_all_reservations()
-    user_reservations = [res for res in reservations if res['user_id'] == user_id]
+    user_reservations = [res for res in reservations if res['user_id'] == user_id and (name_restaurant is None or res['name_restaurant'] == name_restaurant)]
     return user_reservations
