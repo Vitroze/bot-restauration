@@ -22,6 +22,7 @@ ALL_TYPES_PERMISSIONS_RESTAURANT = {
     "add_item_menu": "Ajouter un item au menu d'un restaurant",
     "edit_item_menu": "Modifier un item du menu d'un restaurant",
     "remove_item_menu": "Supprimer un item du menu d'un restaurant",
+    "take_command": "Prendre une commande dans le restaurant",
 }
 
 @app_commands.guild_only()
@@ -60,6 +61,11 @@ class Config(commands.Cog):
     @app_commands.describe(new_location="La nouvelle localisation du restaurant")
     @check_permission_restaurant(param="restaurant_name", permission="edit_restaurant")
     async def edit_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, new_description: str = None, new_type: RestaurantTypeTransformer = None, new_location: str = None):
+        restaurant_name = restaurant_name.name if restaurant_name else None
+        if not restaurant_name:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
         restaurant = get_all_restaurants().get(restaurant_name)
 
         if not restaurant:
@@ -84,6 +90,7 @@ class Config(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     @app_commands.describe(restaurant_name="Le nom du restaurant à supprimer")
     async def delete_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer):
+        restaurant_name = restaurant_name.name if restaurant_name else None
         if not is_existing_restaurant(restaurant_name):
             await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
             return
@@ -98,6 +105,11 @@ class Config(commands.Cog):
     @app_commands.describe(role="Le rôle auquel ajouter la permission")
     @app_commands.describe(permission="La permission à ajouter")
     async def add_perm_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, role: discord.Role, permission: str):
+        restaurant_name = restaurant_name.name if restaurant_name else None
+        if not restaurant_name:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
         restaurant = get_all_restaurants().get(restaurant_name)
         if not restaurant:
             await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
@@ -157,6 +169,11 @@ class Config(commands.Cog):
     @app_commands.describe(permission="La permission à supprimer")
 
     async def remove_perm_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, role: discord.Role, permission: str):
+        restaurant_name = restaurant_name.name if restaurant_name else None
+        if not restaurant_name:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
         restaurant = get_all_restaurants().get(restaurant_name)
         if not restaurant:
             await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
@@ -220,6 +237,11 @@ class Config(commands.Cog):
     @app_commands.describe(restaurant_name="Le nom du restaurant à afficher")
     @app_commands.describe(hidden="Si le message doit être visible uniquement par vous (True) ou public (False)")
     async def see_restaurant(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, hidden:bool=True):
+        restaurant_name = restaurant_name.name if restaurant_name else None
+        if not restaurant_name:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
         restaurant = get_all_restaurants().get(restaurant_name)
         if not restaurant:
             await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
@@ -352,6 +374,110 @@ class Config(commands.Cog):
         TYPE_TICKET[ticket_type] = category.id
         await self.bot.get_cog("TicketManager").setup_config_channel(self.bot.get_cog("TicketManager").config_channel)
         await interaction.followup.send(f"La catégorie pour le type de ticket `{ticket_type}` a été configurée avec succès : {category.mention}", ephemeral=True)
+
+    ## =================
+    ## Menu
+    ## =================
+
+    @app_commands.command(name=f"{PREFIX}vresto_add_menu_item", description="Ajouter un item au menu d'un restaurant.")
+    @check_permission_restaurant(param="restaurant_name", permission="add_item_menu")
+    @app_commands.describe(restaurant_name="Le nom du restaurant")
+    @app_commands.describe(item_name="Le nom de l'item à ajouter")
+    @app_commands.describe(item_description="La description de l'item à ajouter")
+    @app_commands.describe(item_price="Le prix de l'item à ajouter")
+    @app_commands.describe(item_picture_url="L'URL de l'image de l'item à ajouter (optionnel)")
+    async def add_menu_item(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, item_name: str, item_description: str, item_price: float, item_picture_url: str = None):
+        restaurant_name = restaurant_name.name if restaurant_name else None
+        if not restaurant_name:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
+        restaurant = get_all_restaurants().get(restaurant_name)
+        if not restaurant:
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
+
+        if getattr(restaurant, 'menu', None):
+            print(restaurant)
+            restaurant['menu'] = []
+
+        if any(item['name'].lower() == item_name.lower() for item in restaurant['menu']):
+            await interaction.response.send_message(f"L'item `{item_name}` existe déjà dans le menu du restaurant `{restaurant_name}`.", ephemeral=True)
+            return
+
+        new_item = {
+            "name": item_name,
+            "description": item_description,
+            "price": item_price,
+            "picture_url": item_picture_url
+        }
+
+        restaurant['menu'].append(new_item)
+        await save_restaurant(Restaurant(**restaurant))
+
+        await interaction.response.send_message(f"L'item `{item_name}` a été ajouté au menu du restaurant `{restaurant_name}` avec succès.")
+
+    @app_commands.command(name=f"{PREFIX}vresto_remove_menu_item", description="Supprimer un item du menu d'un restaurant.")
+    @check_permission_restaurant(param="restaurant_name", permission="remove_item_menu")
+    @app_commands.describe(restaurant_name="Le nom du restaurant")
+    @app_commands.describe(item_name="Le nom de l'item à supprimer")
+    async def remove_menu_item(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, item_name: str):
+        restaurant_name = restaurant_name.name if restaurant_name else None
+        if not restaurant_name:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
+        restaurant = get_all_restaurants().get(restaurant_name)
+        if not restaurant:
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
+
+        item_to_remove = next((item for item in restaurant['menu'] if item['name'].lower() == item_name.lower()), None)
+        if not item_to_remove:
+            await interaction.response.send_message(f"L'item `{item_name}` n'existe pas dans le menu du restaurant `{restaurant_name}`.", ephemeral=True)
+            return
+
+        restaurant['menu'].remove(item_to_remove)
+        await save_restaurant(Restaurant(**restaurant))
+
+        await interaction.response.send_message(f"L'item `{item_name}` a été supprimé du menu du restaurant `{restaurant_name}` avec succès.")
+
+    @app_commands.command(name=f"{PREFIX}vresto_edit_menu_item", description="Modifier un item du menu d'un restaurant.")
+    @check_permission_restaurant(param="restaurant_name", permission="edit_item_menu")
+    @app_commands.describe(restaurant_name="Le nom du restaurant")
+    @app_commands.describe(item_name="Le nom de l'item à modifier")
+    @app_commands.describe(new_item_name="Le nouveau nom de l'item (optionnel)")
+    @app_commands.describe(new_item_description="La nouvelle description de l'item (optionnel)")
+    @app_commands.describe(new_item_price="Le nouveau prix de l'item (optionnel)")
+    @app_commands.describe(new_item_picture_url="La nouvelle URL de l'image de l'item (optionnel)")
+    async def edit_menu_item(self, interaction: discord.Interaction, restaurant_name: RestaurantNameTransformer, item_name: str, new_item_name: str = None, new_item_description: str = None, new_item_price: float = None, new_item_picture_url: str = None):
+        restaurant_name = restaurant_name.name if restaurant_name else None
+        if not restaurant_name:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
+        restaurant = get_all_restaurants().get(restaurant_name)
+        if not restaurant:
+            await interaction.response.send_message(f"Le restaurant `{restaurant_name}` n'existe pas.", ephemeral=True)
+            return
+
+        item_to_edit = next((item for item in restaurant['menu'] if item['name'].lower() == item_name.lower()), None)
+        if not item_to_edit:
+            await interaction.response.send_message(f"L'item `{item_name}` n'existe pas dans le menu du restaurant `{restaurant_name}`.", ephemeral=True)
+            return
+
+        if new_item_name:
+            item_to_edit['name'] = new_item_name
+        if new_item_description:
+            item_to_edit['description'] = new_item_description
+        if new_item_price is not None:
+            item_to_edit['price'] = new_item_price
+        if new_item_picture_url:
+            item_to_edit['picture_url'] = new_item_picture_url
+
+        await save_restaurant(Restaurant(**restaurant))
+
+        await interaction.response.send_message(f"L'item `{item_name}` a été modifié dans le menu du restaurant `{restaurant_name}` avec succès.")
 
 async def setup(bot):
     await bot.add_cog(Config(bot))

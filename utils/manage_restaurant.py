@@ -40,6 +40,8 @@ async def save_restaurant(restaurant: Restaurant) -> bool:
     Save a restaurant to the database.
     """
 
+    global all_restaurants
+
     all_restaurants = get_all_restaurants()
     all_restaurants[restaurant.name] = restaurant.to_dict()
 
@@ -61,7 +63,7 @@ async def load_all_restaurants():
 
     return restaurant_objects
 
-def get_restaurant_object(restaurant_name):
+async def get_restaurant_object(restaurant_name):
     """
     Get a restaurant object by its name.
     """
@@ -101,7 +103,7 @@ def delete_restaurant(restaurant_name):
 
 class RestaurantTransformer(app_commands.Transformer):
     async def transform(self, interaction: discord.Interaction, value: str) -> "Restaurant":
-        return value
+        return await get_restaurant_object(value)
 
     async def autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
         restaurants = get_all_restaurants()

@@ -74,6 +74,11 @@ class Reservations(commands.Cog):
     @app_commands.describe(restaurant="Nom du restaurant")
     @check_permission_restaurant(param="restaurant", permission="see_reservations")
     async def restaurant_voir_reservations(self, interaction: discord.Interaction, restaurant: RestaurantNameTransformer, user: discord.User = None, hidden:bool = True):
+        restaurant = restaurant.name if restaurant else None
+        if not restaurant:
+            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            return
+
         restaurant_reservations = await get_reservations_by_user(user.id, restaurant) if user else await get_all_reservations_by_restaurant(restaurant)
 
         if not restaurant_reservations:

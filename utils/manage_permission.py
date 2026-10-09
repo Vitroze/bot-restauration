@@ -1,3 +1,4 @@
+import inspect
 import discord
 from .manage_restaurant import get_restaurant_object
 
@@ -5,6 +6,9 @@ def check_permission(param:str, model:callable, callback_check: callable, permis
     async def predicate(interaction: discord.Interaction) -> bool:
         any_variable = getattr(interaction.namespace, param, None)
         object = model(any_variable)
+        if inspect.isawaitable(object):
+            object = await object
+
         if object is None:
             await interaction.response.send_message(f"Aucun objet trouvé pour la valeur '{any_variable}'.", ephemeral=True)
             return False
