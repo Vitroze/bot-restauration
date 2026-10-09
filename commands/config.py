@@ -4,6 +4,7 @@ from pyexpat.errors import messages
 import discord
 from discord import app_commands
 from discord.ext import commands
+from ui.config_restaurant import ConfigRestaurantView
 from utils.logger import printMessage, printError, printLog
 from utils.manage_restaurant import *
 from models.restaurant import Restaurant, RestaurantType
@@ -32,6 +33,13 @@ class Config(commands.Cog):
 
     RestaurantNameTransformer = app_commands.Transform[Restaurant, RestaurantTransformer]
     RestaurantTypeTransformer = app_commands.Transform[RestaurantType, RestaurantTypeTransformer]
+
+    @app_commands.command(name=f"{PREFIX}restaurant", description="Gère les restaurants.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def manage_restaurant(self, interaction: discord.Interaction):
+        view = ConfigRestaurantView(interaction.user.id)
+        await interaction.response.send_message(embed=view.build_embed(), view=view, ephemeral=True)
+        view.message = await interaction.original_response()
 
     @app_commands.command(name=f"{PREFIX}vresto_create", description="Crée un restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
