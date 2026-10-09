@@ -6,7 +6,8 @@ import discord
 
 from ui.base_view import PaginatedView
 from ui.category_restaurant_view import CategoryRestaurantView
-from ui.edit import EditPermissionRestaurantView, EditRestaurantModal, EditItem, SelectItemView
+from ui.edit_restaurant import EditPermissionRestaurantView, EditRestaurantModal
+from ui.edit_item import EditItem, SelectItemView
 from utils.manage_restaurant import (
     delete_restaurant,
     get_all_restaurants,
