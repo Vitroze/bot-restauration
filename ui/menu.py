@@ -1,24 +1,23 @@
 import discord
-import math
 from utils.function_utils import to_float, format_price
 from ui.checkout import CheckoutModal
-PER_PAGE = 5
+from ui.base_view import PaginatedView
 
-class MenuUI(discord.ui.View):
+
+class MenuUI(PaginatedView):
+    per_page = 5
+    unauthorized_message = "Seul l'auteur de la commande peut naviguer. Utilise `/menu` pour avoir le tien."
+
     def __init__(self, restaurant, menu_items: list[dict], author_id: int, timeout: float = 300):
-        super().__init__(timeout=timeout)
+        super().__init__(author_id, timeout)
         self.restaurant = restaurant
         self.menu_items = menu_items
-        self.author_id = author_id
-        self.page = 0
         self.detail_index: int | None = None  # None = mode liste
         self.cart: dict[int, int] = {}        # index du plat -> quantité
-        self.message: discord.Message | None = None
         self.rebuild()
 
-    @property
-    def page_count(self) -> int:
-        return max(1, math.ceil(len(self.menu_items) / PER_PAGE))
+    def total_items(self) -> int:
+        return len(self.menu_items)
 
     def cart_total(self) -> float:
         return sum(to_float(self.menu_items[i].get("price")) * qty for i, qty in self.cart.items())
@@ -33,12 +32,12 @@ class MenuUI(discord.ui.View):
             for i, qty in self.cart.items()
         ]
 
+    # ---------- Embeds ----------
     def build_embed(self) -> discord.Embed:
         return self.build_list_embed() if self.detail_index is None else self.build_detail_embed()
 
     def build_list_embed(self) -> discord.Embed:
-        start = self.page * PER_PAGE
-        chunk = self.menu_items[start:start + PER_PAGE]
+        start, chunk = self.page_slice(self.menu_items)
         lines = [f"**{start + i + 1}.** {item.get('name', 'Sans nom')}" for i, item in enumerate(chunk)]
 
         embed = discord.Embed(
@@ -84,8 +83,7 @@ class MenuUI(discord.ui.View):
             self._add_detail_components()
 
     def _add_list_components(self):
-        start = self.page * PER_PAGE
-        chunk = self.menu_items[start:start + PER_PAGE]
+        start, chunk = self.page_slice(self.menu_items)
 
         select = discord.ui.Select(
             placeholder="Voir le détail d'un plat...",
@@ -102,14 +100,7 @@ class MenuUI(discord.ui.View):
         select.callback = self.on_select
         self.add_item(select)
 
-        prev_btn = discord.ui.Button(emoji="◀️", style=discord.ButtonStyle.primary,
-                                     disabled=self.page == 0, row=1)
-        prev_btn.callback = self.on_prev_page
-        indicator = discord.ui.Button(label=f"{self.page + 1}/{self.page_count}",
-                                      style=discord.ButtonStyle.secondary, disabled=True, row=1)
-        next_btn = discord.ui.Button(emoji="▶️", style=discord.ButtonStyle.primary,
-                                     disabled=self.page >= self.page_count - 1, row=1)
-        next_btn.callback = self.on_next_page
+        self.add_pagination_buttons(row=1)
 
         pay_btn = discord.ui.Button(label="Payer", emoji="💳", style=discord.ButtonStyle.success,
                                     disabled=not self.cart, row=2)
@@ -117,8 +108,7 @@ class MenuUI(discord.ui.View):
         clear_btn = discord.ui.Button(label="Vider le panier", emoji="🗑️", style=discord.ButtonStyle.danger,
                                       disabled=not self.cart, row=2)
         clear_btn.callback = self.on_clear
-
-        for b in (prev_btn, indicator, next_btn, pay_btn, clear_btn):
+        for b in (pay_btn, clear_btn):
             self.add_item(b)
 
     def _add_detail_components(self):
@@ -144,21 +134,9 @@ class MenuUI(discord.ui.View):
         for b in (prev_btn, back_btn, next_btn, remove_btn, qty_btn, add_btn):
             self.add_item(b)
 
-    async def refresh(self, interaction: discord.Interaction):
-        self.rebuild()
-        await interaction.response.edit_message(embed=self.build_embed(), view=self)
-
-    # ---------- Callbacks : liste ----------
+    # ---------- Callbacks ----------
     async def on_select(self, interaction: discord.Interaction):
         self.detail_index = int(interaction.data["values"][0])
-        await self.refresh(interaction)
-
-    async def on_prev_page(self, interaction: discord.Interaction):
-        self.page = max(0, self.page - 1)
-        await self.refresh(interaction)
-
-    async def on_next_page(self, interaction: discord.Interaction):
-        self.page = min(self.page_count - 1, self.page + 1)
         await self.refresh(interaction)
 
     async def on_pay(self, interaction: discord.Interaction):
@@ -172,7 +150,7 @@ class MenuUI(discord.ui.View):
         await self.refresh(interaction)
 
     async def on_back(self, interaction: discord.Interaction):
-        self.page = self.detail_index // PER_PAGE
+        self.page = self.detail_index // self.per_page
         self.detail_index = None
         await self.refresh(interaction)
 
@@ -195,21 +173,3 @@ class MenuUI(discord.ui.View):
         else:
             self.cart[self.detail_index] = qty
         await self.refresh(interaction)
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.author_id:
-            await interaction.response.send_message(
-                "Seul l'auteur de la commande peut naviguer. Utilise `/menu` pour avoir le tien.",
-                ephemeral=True,
-            )
-            return False
-        return True
-
-    async def on_timeout(self):
-        for child in self.children:
-            child.disabled = True
-        if self.message:
-            try:
-                await self.message.edit(view=self)
-            except discord.HTTPException:
-                pass
