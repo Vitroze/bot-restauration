@@ -19,7 +19,6 @@ RAPPELS = {
     "2_days": timedelta(days=2),
 }
 
-
 class Rappel(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
