@@ -7,6 +7,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from utils.manage_restaurant import load_all_restaurants
 from utils.manage_ticket import TicketManager
+from models.rappels import Rappel
 
 load_dotenv()
 
@@ -58,6 +59,9 @@ class RegisterCommands(commands.Cog):
             self.ticket_cog = TicketManager(self.bot)
             await self.bot.add_cog(self.ticket_cog)
 
+            self.rappel_cog = Rappel(self.bot)
+            await self.bot.add_cog(self.rappel_cog)
+
             synced = await self.bot.tree.sync(guild=guild)
             printMessage("RegisterCommands", f"Commandes slash synchronisées : {len(synced)}")
             self.synced = True
@@ -73,7 +77,11 @@ class RegisterCommands(commands.Cog):
 
         printError("RegisterCommands", f"Erreur ({type(error).__name__}) lors de l'exécution de la commande '{interaction.command.name}' : {error}")
         printError("RegisterCommands", f"Traceback : {traceback.format_exc()}")
-        await interaction.response.send_message(f"Une erreur est survenue lors de l'exécution de la commande. Si vous êtes un administrateur, veuillez vérifier les logs pour plus d'informations.", ephemeral=True)
+
+        if interaction.response.is_done():
+            await interaction.followup.send(f"Une erreur est survenue lors de l'exécution de la commande. Si vous êtes un administrateur, veuillez vérifier les logs pour plus d'informations.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Une erreur est survenue lors de l'exécution de la commande. Si vous êtes un administrateur, veuillez vérifier les logs pour plus d'informations.", ephemeral=True)
 
     @commands.Cog.listener()
     async def on_error(self, event_method, *args, **kwargs):

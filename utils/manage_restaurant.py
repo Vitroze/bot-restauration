@@ -3,7 +3,6 @@ import json
 from models.restaurant import Restaurant, RestaurantType
 import discord
 from discord import app_commands
-import traceback
 
 all_restaurants = []
 def get_all_restaurants():

@@ -13,39 +13,6 @@ TYPE_TICKET = {
     "❓ Support": None,
 }
 
-class ReservationModal(discord.ui.Modal, title="Réservation"):
-    # option
-    name_restaurant_label = discord.ui.Label(
-        text="Nom du restaurant",
-        component=discord.ui.Select(
-            required=True,
-            placeholder="Sélectionnez un restaurant",
-            options=[
-                discord.SelectOption(label=name, value=name) for name in get_all_restaurants().keys()
-            ],
-        ),
-    )
-
-    date_reservation = discord.ui.TextInput(
-        label="Date de réservation",
-        placeholder="Entrez la date de réservation (ex: 2024-06-15)",
-        required=True
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        restaurant_name = self.name_restaurant_label.value
-        if restaurant_name not in get_all_restaurants():
-            await interaction.response.send_message(f"Le restaurant '{restaurant_name}' n'existe pas.", ephemeral=True)
-            return
-
-        date = self.date_reservation.value
-
-        try:
-            date_obj = discord.utils.parse_time(date)
-        except ValueError:
-            await interaction.response.send_message("Format de date invalide. Veuillez utiliser le format YYYY-MM-DD.", ephemeral=True)
-            return
-
 class TicketSelect(discord.ui.Select):
     def __init__(self, cog: "TicketManager"):
         self.cog = cog
