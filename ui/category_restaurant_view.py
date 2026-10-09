@@ -1,8 +1,12 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 import discord
 
 from models.restaurant import Restaurant
 from ui.base_view import BaseView
-from ui.config_restaurant import ConfigRestaurantView
+if TYPE_CHECKING:
+    from ui.config_restaurant import ConfigRestaurantView
 from utils.manage_restaurant import get_all_restaurants, save_restaurant
 
 
