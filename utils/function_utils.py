@@ -1,4 +1,5 @@
 import discord
+from models.restaurant import Restaurant
 
 def to_float(price) -> float:
     try:
@@ -29,3 +30,13 @@ async def is_valid_emoji(self, emoji: str) -> bool:
         return True
 
     return bool(emoji) and not emoji.isascii()
+
+def get_role_chef(restaurant: Restaurant, guild: discord.Guild) -> list[discord.Role]:
+    """Rôles ayant la permission take_command pour ce restaurant."""
+    roles = []
+    for role_id, perms in restaurant.permissions.items():
+        if "take_command" in perms:
+            role = guild.get_role(int(role_id))
+            if role:
+                roles.append(role)
+    return roles

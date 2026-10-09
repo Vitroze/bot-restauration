@@ -222,7 +222,6 @@ class EditRestaurantModal(discord.ui.Modal):
         await interaction.followup.send("✅ Restaurant modifié.", ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        print(f"Erreur modal modification restaurant : {error!r}")
         if interaction.response.is_done():
             await interaction.followup.send("Une erreur est survenue.", ephemeral=True)
         else:

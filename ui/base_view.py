@@ -1,6 +1,7 @@
 from __future__ import annotations
 import math
 import discord
+from utils.logger import printError
 
 
 class BaseView(discord.ui.View):
@@ -38,7 +39,7 @@ class BaseView(discord.ui.View):
         try:
             await self._edit_main(embed=self.build_embed(), view=self)
         except discord.HTTPException as e:
-            print(f"Erreur refresh_message : {e!r}")
+            printError("BaseView", f"Erreur refresh_message : {e!r}")
 
     # ---------- Vérifications / timeout ----------
     async def interaction_check(self, interaction: discord.Interaction) -> bool:

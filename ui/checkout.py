@@ -4,7 +4,7 @@ import re
 import traceback
 import discord
 from models.restaurant import Restaurant
-from utils.function_utils import format_price
+from utils.function_utils import format_price, get_role_chef
 from ui.order_ticket import OrderView
 from utils.logger import printError
 if TYPE_CHECKING:
@@ -14,16 +14,6 @@ def slugify(text: str) -> str:
     """Convertit un texte en un slug utilisable pour les noms de salons Discord."""
 
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:30] or "client"
-
-def get_role_chef(restaurant: Restaurant, guild: discord.Guild) -> list[discord.Role]:
-    """Rôles ayant la permission take_command pour ce restaurant."""
-    roles = []
-    for role_id, perms in restaurant.permissions.items():
-        if "take_command" in perms:
-            role = guild.get_role(int(role_id))
-            if role:
-                roles.append(role)
-    return roles
 
 class CheckoutModal(discord.ui.Modal):
     def __init__(self, view: "MenuUI"):
@@ -74,9 +64,10 @@ class CheckoutModal(discord.ui.Modal):
             overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
         category = getattr(interaction.channel, "category", None)
+        sID = f"commande-{slugify(interaction.user.name)}"
         existing_channel = discord.utils.get(
             guild.text_channels,
-            name=f"commande-{slugify(interaction.user.name)}",
+            name=sID,
             category=category
         )
 
@@ -89,7 +80,7 @@ class CheckoutModal(discord.ui.Modal):
 
         try:
             channel = await guild.create_text_channel(
-                name=f"commande-{slugify(interaction.user.name)}",
+                name=sID,
                 category=category,
                 overwrites=overwrites,
                 topic=f"Commande de {interaction.user} - {view.restaurant.name}",
@@ -119,7 +110,7 @@ class CheckoutModal(discord.ui.Modal):
             recap.add_field(name="Remarque", value=self.remarque.value, inline=False)
 
         chefs = " ".join(r.mention for r in chef_roles) or "*Aucun chef configuré pour ce restaurant*"
-        order_view = OrderView(interaction.user.id, [r.id for r in chef_roles])
+        order_view = OrderView(interaction.user.id, view.restaurant.name)
         await channel.send(
             content=f"👨‍🍳 {chefs} - nouvelle commande de {interaction.user.mention} !",
             embed=recap,

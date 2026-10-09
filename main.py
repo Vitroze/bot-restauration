@@ -7,6 +7,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from utils.manage_restaurant import load_all_restaurants
 from utils.manage_ticket import TicketManager
+from ui.order_ticket import TakeOrderButton, CloseOrderButton
 from models.rappels import Rappel
 from utils.logger import printMessage, printError, printLog
 
@@ -76,6 +77,7 @@ class RegisterCommands(commands.Cog):
 
 async def main():
     os.system("cls" if os.name == "nt" else "clear")  # Clear the console for better readability
+    discord.utils.setup_logging()
 
     async with bot:
         for filename in os.listdir("./commands"):
@@ -83,7 +85,9 @@ async def main():
                 printMessage("RegisterCommands", f"Chargement de l'extension : {filename[:-3]}")
                 await bot.load_extension(f"commands.{filename[:-3]}")
 
-
+        printMessage("Main", "Enregistrement des boutons dynamiques...")
+        bot.add_dynamic_items(TakeOrderButton, CloseOrderButton)
+        printMessage("Main", "Démarrage du bot...")
         await bot.add_cog(RegisterCommands(bot))
         await bot.start(os.getenv("DISCORD_TOKEN"))
 
