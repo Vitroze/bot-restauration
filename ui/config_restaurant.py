@@ -9,6 +9,7 @@ from ui.category_restaurant_view import CategoryRestaurantView
 from ui.config_restaurant_embeds import ConfigRestaurantEmbedsMixin
 from ui.edit_item import EditItem, SelectItemView
 from ui.edit_restaurant import EditPermissionRestaurantView, EditRestaurantModal
+from utils.manage_permission import check_ui_permission, ensure_ui_permission
 from utils.manage_restaurant import (
     delete_restaurant,
     get_all_restaurants,
@@ -143,7 +144,10 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
 
     # ---------- Callbacks ----------
     async def on_select(self, interaction: discord.Interaction):
-        self.selected = interaction.data["values"][0]
+        restaurant_name = interaction.data["values"][0]
+        if not await ensure_ui_permission(interaction, restaurant_name, "view_config"):
+            return
+        self.selected = restaurant_name
         self.mode = "detail"
         await self.refresh(interaction)
 
@@ -153,6 +157,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
         self.clamp_page()
         await self.refresh(interaction)
 
+    @check_ui_permission("edit_restaurant", restaurant_attr="selected")
     async def on_edit(self, interaction: discord.Interaction):
         restaurant = self.current()
         if not restaurant:
@@ -160,6 +165,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
             return
         await interaction.response.send_modal(EditRestaurantModal(self, restaurant))
 
+    @check_ui_permission("manage_permissions", restaurant_attr="selected")
     async def on_add_permission(self, interaction: discord.Interaction):
         restaurant = self.current()
         if not restaurant:
@@ -178,6 +184,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
             "Ajouter une permission à un rôle :", view=view, ephemeral=True
         )
 
+    @check_ui_permission("manage_permissions", restaurant_attr="selected")
     async def on_remove_permission(self, interaction: discord.Interaction):
         restaurant = self.current()
         if not restaurant:
@@ -196,6 +203,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
             "Retirer une permission à un rôle :", view=view, ephemeral=True
         )
 
+    @check_ui_permission("edit_restaurant", restaurant_attr="selected")
     async def on_delete(self, interaction: discord.Interaction):
         self.mode = "confirm"
         await self.refresh(interaction)
@@ -204,6 +212,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
         self.mode = "detail"
         await self.refresh(interaction)
 
+    @check_ui_permission("edit_restaurant", restaurant_attr="selected")
     async def on_confirm_delete(self, interaction: discord.Interaction):
         name = self.selected
         if name and name in get_all_restaurants():
@@ -217,6 +226,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
             f"🗑️ Le restaurant `{name}` a été supprimé.", ephemeral=True
         )
 
+    @check_ui_permission("edit_restaurant", restaurant_attr="selected")
     async def on_config_category(self, interaction: discord.Interaction):
         restaurant = self.current()
         if not restaurant:
@@ -233,6 +243,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
             ephemeral=True,
         )
 
+    @check_ui_permission("add_item_menu", restaurant_attr="selected")
     async def on_add_item(self, interaction: discord.Interaction):
         restaurant = self.current()
         if not restaurant:
@@ -241,6 +252,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
 
         await interaction.response.send_modal(EditItem(self, restaurant, edit=False))
 
+    @check_ui_permission("edit_item_menu", restaurant_attr="selected")
     async def on_modify_item(self, interaction: discord.Interaction):
         restaurant = self.current()
         if not restaurant:
@@ -257,6 +269,7 @@ class ConfigRestaurantView(ConfigRestaurantEmbedsMixin, PaginatedView):
             "Sélectionne l'item à modifier :", view=view, ephemeral=True
         )
 
+    @check_ui_permission("remove_item_menu", restaurant_attr="selected")
     async def on_remove_item(self, interaction: discord.Interaction):
         restaurant = self.current()
         if not restaurant:

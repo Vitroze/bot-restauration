@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 from models.restaurant import Restaurant
 from ui.base_view import BaseView
 from utils.function_utils import format_price
+from utils.manage_permission import ensure_ui_permission
 from utils.manage_restaurant import (
     get_all_restaurants,
     save_restaurant,
@@ -86,6 +87,9 @@ class SelectItemView(BaseView):
         await interaction.response.edit_message(view=self)
 
     async def on_select(self, interaction: discord.Interaction):
+        permission = "remove_item_menu" if self.remove else "edit_item_menu"
+        if not await ensure_ui_permission(interaction, self.restaurant_name, permission):
+            return
         item_name = interaction.data["values"][0]
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:
@@ -167,6 +171,9 @@ class EditItem(discord.ui.Modal):
             self.add_item(it)
 
     async def on_submit(self, interaction: discord.Interaction):
+        permission = "edit_item_menu" if self.edit else "add_item_menu"
+        if not await ensure_ui_permission(interaction, self.restaurant_name, permission):
+            return
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:
             await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)

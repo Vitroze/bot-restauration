@@ -6,6 +6,7 @@ import discord
 
 from models.restaurant import Restaurant
 from ui.base_view import BaseView
+from utils.manage_permission import check_ui_permission
 
 if TYPE_CHECKING:
     from ui.config_restaurant import ConfigRestaurantView
@@ -21,11 +22,11 @@ ALL_TYPES_PERMISSIONS_RESTAURANT = {
     "view_config": "Voir la configuration du restaurant",
     "manage_reservations": "Gérer les réservations du restaurant",
     "see_reservations": "Voir les réservations du restaurant",
-    "manage_tickets": "Gérer les tickets du restaurant",
     "add_item_menu": "Ajouter un item au menu d'un restaurant",
     "edit_item_menu": "Modifier un item du menu d'un restaurant",
     "remove_item_menu": "Supprimer un item du menu d'un restaurant",
     "take_command": "Prendre une commande dans le restaurant",
+    "manage_permissions": "Gérer les permissions du restaurant",
 }
 
 
@@ -143,6 +144,7 @@ class EditPermissionRestaurantView(BaseView):
         self.rebuild()
         await interaction.response.edit_message(view=self)
 
+    @check_ui_permission("manage_permissions")
     async def on_confirm(self, interaction: discord.Interaction):
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:
@@ -210,6 +212,7 @@ class EditRestaurantModal(discord.ui.Modal):
         for item in (self.description, self.type_restaurant, self.location):
             self.add_item(item)
 
+    @check_ui_permission("edit_restaurant")
     async def on_submit(self, interaction: discord.Interaction):
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:

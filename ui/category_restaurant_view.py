@@ -10,6 +10,7 @@ from ui.base_view import BaseView
 if TYPE_CHECKING:
     from ui.config_restaurant import ConfigRestaurantView
 
+from utils.manage_permission import check_ui_permission
 from utils.manage_restaurant import get_all_restaurants, save_restaurant
 
 
@@ -57,6 +58,7 @@ class CategoryRestaurantView(BaseView):
         self.rebuild()
         await interaction.response.edit_message(view=self)
 
+    @check_ui_permission("edit_restaurant")
     async def on_confirm(self, interaction: discord.Interaction):
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:

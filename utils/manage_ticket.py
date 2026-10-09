@@ -14,6 +14,11 @@ TYPE_TICKET = {
     "❓ Support": None,
 }
 
+DESC_TICKET = {
+    "📝 Recrutement": "Pour toute demande de recrutement dans un restaurant.",
+    "❓ Support": "Pour toute question ou problème technique.",
+}
+
 
 class TicketSelect(discord.ui.Select):
     def __init__(self, cog: "TicketManager"):
@@ -168,14 +173,12 @@ class TicketManager(commands.Cog):
             description=f"Réagissez avec {self.config_ticket_emoji} pour créer un ticket.",
             color=discord.Color.blue(),
         )
-        embed.add_field(
-            name="❓ Support", value="Pour toute question ou problème technique.", inline=False
-        )
-        embed.add_field(
-            name="💰 Réservation",
-            value="Pour toute demande de réservation dans un restaurant.",
-            inline=False,
-        )
+        for ticket_type in TYPE_TICKET.keys():
+            embed.add_field(
+                name=f"{self.config_ticket_emoji} {ticket_type}",
+                value=f"{DESC_TICKET.get(ticket_type, '')}",
+                inline=False,
+            )
         embed.set_footer(text="Merci de votre compréhension.")
 
         message = await channel.send(embed=embed, view=TicketView(self))
