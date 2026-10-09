@@ -82,8 +82,9 @@ class MenuUI(PaginatedView):
         embed.add_field(
             name="Dans le panier", value=str(self.cart.get(self.detail_index, 0)), inline=True
         )
-        if item.get("picture_url"):
-            embed.set_image(url=item["picture_url"])
+
+        if item.get("picture"):
+            embed.set_image(url=item["picture"])
         embed.set_footer(text=f"Plat {self.detail_index + 1}/{len(self.menu_items)}")
         return embed
 
