@@ -4,8 +4,8 @@ from zoneinfo import ZoneInfo
 import discord
 from discord import app_commands
 from discord.ext import commands
-from models import reservations
-from models.reservations import ReservationModal
+from ui import reservations
+from ui.reservations import ReservationModal
 from utils.manage_reservations import get_reservations_by_user, remove_reservation, get_all_reservations_by_restaurant
 from utils.manage_restaurant import RestaurantTransformer
 from models.restaurant import Restaurant
