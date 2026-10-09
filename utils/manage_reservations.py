@@ -59,9 +59,12 @@ async def remove_reservation(name_restaurant: str, date_reservation: str, user_i
     else:
         return False, "Aucune réservation trouvée pour ce restaurant à cette date pour cet utilisateur."
 
-async def save_reservations_to_file():
+async def save_reservations_to_file(reservations=None):
+    if reservations is None:
+        reservations = all_reservations
+
     with open("data/reservations.json", "w") as file:
-        json.dump(all_reservations, file, indent=4)
+        json.dump(reservations, file, indent=4)
 
 async def get_reservations_by_user(user_id: int, name_restaurant: str = None):
     reservations = await get_all_reservations()

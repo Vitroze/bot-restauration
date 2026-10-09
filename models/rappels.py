@@ -36,33 +36,53 @@ class Rappel(commands.Cog):
 
         for res in reservations:
             try:
-                date_obj = datetime.strptime(res["date_reservation"], "%Y-%m-%d").date()
+                date_obj = datetime.strptime(res["date_reservation"], "%d/%m/%Y").date()
             except ValueError:
+                reservations.remove(res)
+                modifie = True
                 continue
 
             dt = datetime.combine(date_obj, time.min, tzinfo=TZ)
             if now >= dt:
                 continue
 
-            deja_envoyes = res.setdefault("rappels_envoyes", [])
+            already_send = res.setdefault("already_sent", [])
             dus = [
                 label for label, delta in RAPPELS.items()
-                if now >= dt - delta and label not in deja_envoyes
+                if now >= dt - delta and label not in already_send
             ]
+
             if not dus:
                 continue
 
-            deja_envoyes.extend(dus)
+            already_send.extend(dus)
             modifie = True
-            await self.envoyer_rappel(res, dt)
+
+            await self.send_rappel(res, dt, min(dus, key=lambda label: RAPPELS[label]))
 
         if modifie:
             await save_reservations_to_file(reservations)
 
-    async def envoyer_rappel(self, res: dict, dt: datetime):
+    async def format_date(self, date_str: str) -> datetime:
+        """
+        30_minutes -> 30 minutes
+        2_hours -> 2 heures
+        2_days -> 2 jours
+        """
+
+        if date_str.endswith("_minutes"):
+            return f"{date_str.split('_')[0]} minutes"
+        elif date_str.endswith("_hours"):
+            return f"{date_str.split('_')[0]} heures"
+        elif date_str.endswith("_days"):
+            return f"{date_str.split('_')[0]} jours"
+        else:
+            return date_str
+
+    async def send_rappel(self, res: dict, dt: datetime, rappel: str):
         try:
             user = self.bot.get_user(res["user_id"]) or await self.bot.fetch_user(res["user_id"])
-            embed = discord.Embed(title="Rappel de réservation", color=discord.Color.orange())
+            embed = discord.Embed(title=f"Rappel de réservation ({await self.format_date(rappel)})", color=discord.Color.orange())
             embed.add_field(name="Restaurant", value=res["name_restaurant"], inline=False)
             embed.add_field(name="Date de réservation", value=discord.utils.format_dt(dt, "D"), inline=False)
             embed.add_field(name="Dans combien de temps", value=discord.utils.format_dt(dt, "R"), inline=False)
