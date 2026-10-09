@@ -40,7 +40,7 @@ class Config(commands.Cog):
         view.origin = interaction
         view.message = await interaction.original_response()
 
-    @app_commands.command(name=f"{PREFIX}vresto_create", description="Crée un restaurant.")
+    @app_commands.command(name=f"{PREFIX}create_restaurant", description="Crée un restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
     async def create_restaurant(
         self,
@@ -82,7 +82,7 @@ class Config(commands.Cog):
     # TYPE
     # ==================
     @app_commands.command(
-        name=f"{PREFIX}vresto_create_type", description="Crée un type de restaurant."
+        name=f"{PREFIX}create_type", description="Crée un type de restaurant."
     )
     @app_commands.checks.has_permissions(administrator=True)
     async def create_restaurant_type(self, interaction: discord.Interaction, name: str):
@@ -100,7 +100,7 @@ class Config(commands.Cog):
         )
 
     @app_commands.command(
-        name=f"{PREFIX}vresto_delete_type", description="Supprime un type de restaurant existant."
+        name=f"{PREFIX}delete_type", description="Supprime un type de restaurant existant."
     )
     @app_commands.checks.has_permissions(administrator=True)
     async def delete_restaurant_type(
@@ -122,7 +122,7 @@ class Config(commands.Cog):
     # Ticket
     # ==================
     @app_commands.command(
-        name=f"{PREFIX}vresto_channel_ticket",
+        name=f"{PREFIX}channel_ticket",
         description="Configurer le salon de ticket pour un restaurant.",
     )
     @app_commands.checks.has_permissions(administrator=True)
@@ -150,7 +150,7 @@ class Config(commands.Cog):
         )
 
     @app_commands.command(
-        name=f"{PREFIX}vresto_emoji_ticket",
+        name=f"{PREFIX}emoji_ticket",
         description="Configurer l'emoji de ticket pour un restaurant.",
     )
     @app_commands.checks.has_permissions(administrator=True)
@@ -189,7 +189,7 @@ class Config(commands.Cog):
         )
 
     @app_commands.command(
-        name=f"{PREFIX}vresto_category_ticket",
+        name=f"{PREFIX}category_ticket",
         description="Configurer la catégorie de ticket pour un type de ticket.",
     )
     @app_commands.checks.has_permissions(administrator=True)
@@ -230,7 +230,7 @@ class Config(commands.Cog):
     # ==================
 
     @app_commands.command(
-        name=f"{PREFIX}vresto_add_menu_item", description="Ajouter un item au menu d'un restaurant."
+        name=f"{PREFIX}add_menu_item", description="Ajouter un item au menu d'un restaurant."
     )
     @check_permission_restaurant(param="restaurant_name", permission="add_item_menu")
     @app_commands.describe(restaurant_name="Le nom du restaurant")
@@ -287,7 +287,7 @@ class Config(commands.Cog):
         )
 
     @app_commands.command(
-        name=f"{PREFIX}vresto_remove_menu_item",
+        name=f"{PREFIX}remove_menu_item",
         description="Supprimer un item du menu d'un restaurant.",
     )
     @check_permission_restaurant(param="restaurant_name", permission="remove_item_menu")
@@ -333,7 +333,7 @@ class Config(commands.Cog):
         )
 
     @app_commands.command(
-        name=f"{PREFIX}vresto_edit_menu_item",
+        name=f"{PREFIX}edit_menu_item",
         description="Modifier un item du menu d'un restaurant.",
     )
     @check_permission_restaurant(param="restaurant_name", permission="edit_item_menu")

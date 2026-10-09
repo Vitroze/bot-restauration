@@ -217,7 +217,7 @@ class EditRestaurantModal(discord.ui.Modal):
         if not is_existing_restaurant_type(new_type):
             await interaction.response.send_message(
                 f"❌ Le type `{new_type}` n'existe pas. "
-                f"Crée-le d'abord avec `/cfg_vresto_create_type`.",
+                f"Crée-le d'abord avec `/cfg_create_type`.",
                 ephemeral=True,
             )
             return
