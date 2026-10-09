@@ -18,8 +18,6 @@ intents.messages = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-#OWNER_ID = 348537418045194250
-
 class RegisterCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -76,41 +74,6 @@ class RegisterCommands(commands.Cog):
         except discord.Forbidden:
             printError("Main", f"Impossible d'envoyer un message privé à {member.name}#{member.discriminator}.")
 
-    # @commands.Cog.listener()
-    # async def on_message(self, message):
-    #     if message.author == self.bot.user:
-    #         return
-
-    #     printLog("Message", f"Message reçu : {message.content} de {message.author}")
-
-    #     for salutation in all_salutations:
-    #         if message.content.lower().find(salutation) != -1:
-    #             await message.channel.send(f"{salutation.capitalize()} {message.author.mention} !")
-    #             await message.add_reaction("👋")
-    #             break
-
-    # @commands.Cog.listener()
-    # async def on_voice_state_update(self, member, before, after):
-    #     if before.channel is None and after.channel is not None:
-    #         printLog("Vocal", f"{member.name}#{member.discriminator} a rejoint le canal vocal {after.channel.name}.")
-    #     elif before.channel is not None and after.channel is None:
-    #         printLog("Vocal", f"{member.name}#{member.discriminator} a quitté le canal vocal {before.channel.name}.")
-    #     elif before.channel != after.channel:
-    #         printLog("Vocal", f"{member.name}#{member.discriminator} a changé de canal vocal : {before.channel.name} -> {after.channel.name}.")
-
-    #     if member.id == 348537418045194250: # Owner
-    #         try:
-    #             if member.guild.voice_client is not None and before.channel is not None and after.channel is None and before.channel.id != member.guild.voice_client.channel.id:
-    #                 await member.guild.voice_client.disconnect()
-    #                 printLog("Vocal", f"Le bot a quitté le canal vocal {before.channel.name}.")
-
-    #             if after.channel is not None:
-    #                 await after.channel.connect()
-    #                 printLog("Vocal", f"Le bot a rejoint le canal vocal {after.channel.name}.")
-    #         except Exception as e:
-    #             printError("Vocal", f"Erreur lors de la gestion du canal vocal : {e}")
-    #             printError("Vocal", f"Traceback : {traceback.format_exc()}")
-
 async def main():
     os.system("cls" if os.name == "nt" else "clear")  # Clear the console for better readability
 
@@ -126,11 +89,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-# @bot.tree.command(name="ping", description="Réponse ?")
-# async def ping(interaction: discord.Interaction, text: str, number:int, boolean: bool = False) -> None:
-#     print(f"Texte : {text} ; {number} ; {boolean}")
-#     await interaction.response.send_message("Boom", delete_after=1.0)
-
-# bot.run(os.getenv("DISCORD_TOKEN"))
-

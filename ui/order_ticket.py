@@ -8,7 +8,6 @@ class OrderView(discord.ui.View):
         self.chef_role_ids = chef_role_ids
         self.taken_by: discord.abc.User | None = None
 
-    # Seuls les chefs (et les admins) peuvent utiliser les boutons
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         member = interaction.user
         is_chef = isinstance(member, discord.Member) and (

@@ -20,7 +20,6 @@ class MenuUI(discord.ui.View):
     def page_count(self) -> int:
         return max(1, math.ceil(len(self.menu_items) / PER_PAGE))
 
-    # ---------- Panier ----------
     def cart_total(self) -> float:
         return sum(to_float(self.menu_items[i].get("price")) * qty for i, qty in self.cart.items())
 
@@ -34,7 +33,6 @@ class MenuUI(discord.ui.View):
             for i, qty in self.cart.items()
         ]
 
-    # ---------- Embeds ----------
     def build_embed(self) -> discord.Embed:
         return self.build_list_embed() if self.detail_index is None else self.build_detail_embed()
 
@@ -198,7 +196,6 @@ class MenuUI(discord.ui.View):
             self.cart[self.detail_index] = qty
         await self.refresh(interaction)
 
-    # ---------- Sécurité / expiration ----------
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
             await interaction.response.send_message(

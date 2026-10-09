@@ -139,7 +139,6 @@ class TicketManager(commands.Cog):
         except (discord.NotFound, discord.Forbidden):
             pass
 
-    # ---------- Envoi ----------
     async def send_embed_message(self, channel: discord.TextChannel):
         await self._delete_previous_message()
 
