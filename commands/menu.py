@@ -32,6 +32,25 @@ class Menu(commands.Cog):
         await interaction.response.send_message(embed=view.build_embed(), view=view)
         view.message = await interaction.original_response()
 
+    @app_commands.command(name="profile", description="Affiche le profil d'un restaurant.")
+    @app_commands.describe(restaurant="Le nom du restaurant dont vous voulez voir le profil.")
+    async def profile(self, interaction: discord.Interaction, restaurant: RestaurantNameTransformer):
+        if not restaurant:
+            await interaction.response.send_message(
+                "Le restaurant spécifié n'existe pas.", ephemeral=True
+            )
+            return
+
+        embed = discord.Embed(
+            title=restaurant.name,
+            description=restaurant.description or "Aucune description disponible.",
+            color=discord.Color.blue(),
+        )
+        embed.add_field(name="Type", value=restaurant.type or "Non spécifié", inline=True)
+        embed.add_field(name="Localisation", value=restaurant.location or "Non spécifiée", inline=True)
+
+        await interaction.response.send_message(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(Menu(bot))
