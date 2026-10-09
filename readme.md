@@ -23,3 +23,8 @@ Args :
 
 ## modify_role_restaurant (Perm : admin)
 > Modifie le rôle associé au restaurant
+
+# Consignes
+- Commenter "un peu le code"
+- Max 300 lignes par fichier py
+- Stocker dans un JSON
