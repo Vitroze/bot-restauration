@@ -6,7 +6,7 @@ import discord
 
 from ui.base_view import PaginatedView
 from ui.category_restaurant_view import CategoryRestaurantView
-from ui.edit import EditPermissionRestaurantView, EditRestaurantModal
+from ui.edit import EditPermissionRestaurantView, EditRestaurantModal, EditItem, SelectItemView
 from utils.manage_restaurant import (
     delete_restaurant,
     get_all_restaurants,
@@ -179,6 +179,21 @@ class ConfigRestaurantView(PaginatedView):
         )
         config_category_btn.callback = self.on_config_category
 
+        add_item_btn = discord.ui.Button(
+            label="Ajouter un objet au menu", emoji="🍽️", style=discord.ButtonStyle.success
+        )
+        add_item_btn.callback = self.on_add_item
+
+        modify_item_btn = discord.ui.Button(
+            label="Modifier un objet du menu", emoji="✏️", style=discord.ButtonStyle.primary
+        )
+        modify_item_btn.callback = self.on_modify_item
+
+        remove_item_btn = discord.ui.Button(
+            label="Supprimer un objet du menu", emoji="🗑️", style=discord.ButtonStyle.danger
+        )
+        remove_item_btn.callback = self.on_remove_item
+
         back_btn = discord.ui.Button(
             label="Retour à la liste", emoji="📋", style=discord.ButtonStyle.secondary
         )
@@ -189,6 +204,9 @@ class ConfigRestaurantView(PaginatedView):
             remove_permission,
             delete_btn,
             config_category_btn,
+            add_item_btn,
+            modify_item_btn,
+            remove_item_btn,
             back_btn,
         ):
             self.add_item(b)
@@ -293,4 +311,40 @@ class ConfigRestaurantView(PaginatedView):
             "Sélectionne la catégorie dans laquelle les salons du restaurant seront créés :",
             view=view,
             ephemeral=True,
+        )
+
+    async def on_add_item(self, interaction: discord.Interaction):
+        restaurant = self.current()
+        if not restaurant:
+            await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
+            return
+
+        await interaction.response.send_modal(EditItem(self, restaurant, edit=False))
+
+    async def on_modify_item(self, interaction: discord.Interaction):
+        restaurant = self.current()
+        if not restaurant:
+            await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
+            return
+        if not restaurant.get("menu"):
+            await interaction.response.send_message("❌ Le menu de ce restaurant est vide.", ephemeral=True)
+            return
+
+        view = SelectItemView(self, restaurant["name"], remove=False)
+        await interaction.response.send_message(
+            "Sélectionne l'item à modifier :", view=view, ephemeral=True
+        )
+
+    async def on_remove_item(self, interaction: discord.Interaction):
+        restaurant = self.current()
+        if not restaurant:
+            await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
+            return
+        if not restaurant.get("menu"):
+            await interaction.response.send_message("❌ Le menu de ce restaurant est vide.", ephemeral=True)
+            return
+
+        view = SelectItemView(self, restaurant["name"], remove=True)
+        await interaction.response.send_message(
+            "Sélectionne l'item à supprimer :", view=view, ephemeral=True
         )
