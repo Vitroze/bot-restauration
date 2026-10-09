@@ -63,7 +63,8 @@ class CheckoutModal(discord.ui.Modal):
         for role in chef_roles:
             overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
-        category = getattr(interaction.channel, "category", None)
+        category_id = getattr(view.restaurant, "category_id", None)
+        category = guild.get_channel(category_id) if category_id else None
         sID = f"commande-{slugify(interaction.user.name)}"
         existing_channel = discord.utils.get(
             guild.text_channels,

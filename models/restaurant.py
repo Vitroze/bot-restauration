@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 
 class Restaurant:
-    def __init__(self, name:str, description:str, type:str, location:str, reservations:list = [], permissions:dict = {}, menu:list = []):
+    def __init__(self, name:str, description:str, type:str, location:str, reservations:list = [], permissions:dict = {}, menu:list = [], category_id:int | None = None):
         self.name = name
         self.description = description
         self.type = type
@@ -10,6 +10,7 @@ class Restaurant:
         self.reservations = reservations or []  # List of reservations for this restaurant
         self.permissions = permissions or {}  # Dictionary to store user permissions for this restaurant
         self.menu = menu or []  # List of menu items for this restaurant
+        self.category_id = category_id
 
     def to_dict(self):
         return {
@@ -19,7 +20,8 @@ class Restaurant:
             "location": self.location,
             "reservations": self.reservations,
             "permissions": self.permissions,
-            "menu": self.menu
+            "menu": self.menu,
+            "category_id": self.category_id,
         }
 
     def __str__(self):

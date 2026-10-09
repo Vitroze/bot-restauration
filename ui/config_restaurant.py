@@ -30,6 +30,62 @@ async def maybe_await(value):
         return await value
     return value
 
+class CategoryRestaurantView(BaseView):
+    unauthorized_message = "Seul l'auteur de la commande peut utiliser ceci."
+
+    def __init__(self, parent: "ConfigRestaurantView", restaurant_name: str, guild: discord.Guild):
+        super().__init__(parent.author_id, timeout=120)
+        self.parent = parent
+        self.restaurant_name = restaurant_name
+        self.guild = guild
+        self.category_id: int | None = None
+        self.rebuild()
+
+    # ---------- Composants ----------
+    def rebuild(self):
+        self.clear_items()
+
+        category_select = discord.ui.ChannelSelect(
+            placeholder="Sélectionne une catégorie...",
+            channel_types=[discord.ChannelType.category],
+            default_values=(
+                [discord.Object(id=self.category_id, type=discord.CategoryChannel)]
+                if self.category_id is not None else []
+            ),
+            row=0,
+        )
+        category_select.callback = self.on_category
+        self.add_item(category_select)
+
+        confirm_btn = discord.ui.Button(
+            label="Confirmer",
+            style=discord.ButtonStyle.success,
+            disabled=self.category_id is None,
+            row=1,
+        )
+        confirm_btn.callback = self.on_confirm
+        self.add_item(confirm_btn)
+
+    # ---------- Callbacks ----------
+    async def on_category(self, interaction: discord.Interaction):
+        category_id = int(interaction.data["values"][0])
+        self.category_id = category_id
+        self.rebuild()
+        await interaction.response.edit_message(view=self)
+
+    async def on_confirm(self, interaction: discord.Interaction):
+        restaurant = get_all_restaurants().get(self.restaurant_name)
+        if not restaurant:
+            await interaction.response.edit_message(content="Ce restaurant n'existe plus.", view=None)
+            return
+
+        restaurant["category_id"] = self.category_id
+        await save_restaurant(Restaurant(**restaurant))
+        await self.parent.refresh_message()
+
+        self.category_id = None
+        self.rebuild()
+        await interaction.response.edit_message(content=f"✅ Catégorie configurée pour le restaurant `{self.restaurant_name}`.", view=self.parent)
 
 class EditPermissionRestaurantView(BaseView):
     unauthorized_message = "Seul l'auteur de la commande peut utiliser ceci."
@@ -292,6 +348,7 @@ class ConfigRestaurantView(PaginatedView):
         embed.add_field(name="Localisation", value=restaurant.get("location", "N/A"), inline=True)
         embed.add_field(name="Plats au menu", value=str(len(restaurant.get("menu", []))), inline=True)
         embed.add_field(name="Réservations", value=str(len(restaurant.get("reservations", []))), inline=False)
+        embed.add_field(name="Catégorie", value=f"{self.origin.guild.get_channel(restaurant['category_id']).mention}" if restaurant.get("category_id") else "Aucune", inline=True)
 
         count_permissions = len(restaurant.get("permissions", {}))
         if count_permissions > 0:
@@ -360,9 +417,12 @@ class ConfigRestaurantView(PaginatedView):
         delete_btn = discord.ui.Button(label="Supprimer", emoji="🗑️", style=discord.ButtonStyle.danger)
         delete_btn.callback = self.on_delete
 
+        config_category_btn = discord.ui.Button(label="Configurer la catégorie", emoji="🏷️", style=discord.ButtonStyle.secondary)
+        config_category_btn.callback = self.on_config_category
+
         back_btn = discord.ui.Button(label="Retour à la liste", emoji="📋", style=discord.ButtonStyle.secondary)
         back_btn.callback = self.on_back
-        for b in (edit_btn, add_permission, remove_permission, delete_btn, back_btn):
+        for b in (edit_btn, add_permission, remove_permission, delete_btn, config_category_btn, back_btn):
             self.add_item(b)
 
     def _add_confirm_components(self):
@@ -435,3 +495,19 @@ class ConfigRestaurantView(PaginatedView):
         self.clamp_page()
         await self.refresh(interaction)
         await interaction.followup.send(f"🗑️ Le restaurant `{name}` a été supprimé.", ephemeral=True)
+
+    async def on_config_category(self, interaction: discord.Interaction):
+        restaurant = self.current()
+        if not restaurant:
+            await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
+            return
+
+        view = CategoryRestaurantView(self, restaurant["name"], interaction.guild)
+        category_id = restaurant.get("category_id")
+        if category_id is not None:
+            view.category_id = category_id
+        await interaction.response.send_message(
+            "Sélectionne la catégorie dans laquelle les salons du restaurant seront créés :",
+            view=view,
+            ephemeral=True,
+        )
