@@ -3,7 +3,8 @@ import os
 
 import discord
 from discord.ext import commands
-from .logger import printMessage, printError
+
+from .logger import print_error, print_message
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
@@ -13,11 +14,15 @@ TYPE_TICKET = {
     "❓ Support": None,
 }
 
+
 class TicketSelect(discord.ui.Select):
     def __init__(self, cog: "TicketManager"):
         self.cog = cog
         options = [
-            discord.SelectOption(label=name, value=name, description=f"Créer un ticket pour {name}.") for name in TYPE_TICKET.keys()
+            discord.SelectOption(
+                label=name, value=name, description=f"Créer un ticket pour {name}."
+            )
+            for name in TYPE_TICKET.keys()
         ]
 
         super().__init__(
@@ -36,14 +41,21 @@ class TicketSelect(discord.ui.Select):
         topic = f"ticket:{member.id}:{ticket_type}"
         existing = discord.utils.get(guild.text_channels, topic=topic)
         if existing:
-            await interaction.followup.send(f"Vous avez déjà un ticket ouvert pour {ticket_type} : {existing.mention}", ephemeral=True)
+            await interaction.followup.send(
+                f"Vous avez déjà un ticket ouvert pour {ticket_type} : {existing.mention}",
+                ephemeral=True,
+            )
         else:
             category_id = TYPE_TICKET.get(ticket_type)
             category = guild.get_channel(category_id) if category_id else None
             overwrites = {
                 guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                member: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-                guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True),
+                member: discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True, read_message_history=True
+                ),
+                guild.me: discord.PermissionOverwrite(
+                    view_channel=True, send_messages=True, manage_channels=True
+                ),
             }
 
             channel = await guild.create_text_channel(
@@ -53,15 +65,21 @@ class TicketSelect(discord.ui.Select):
                 category=category if isinstance(category, discord.CategoryChannel) else None,
             )
 
-
-            await channel.send(f"{member.mention}, votre ticket pour {ticket_type} a été créé. Un membre du support vous répondra bientôt.")
-            await interaction.followup.send(f"Votre ticket pour {ticket_type} a été créé : {channel.mention}", ephemeral=True)
+            await channel.send(
+                f"{member.mention}, votre ticket pour {ticket_type} a été créé. "
+                f"Un membre du support vous répondra bientôt."
+            )
+            await interaction.followup.send(
+                f"Votre ticket pour {ticket_type} a été créé : {channel.mention}", ephemeral=True
+            )
         await interaction.message.edit(view=TicketView(self.cog))
+
 
 class TicketView(discord.ui.View):
     def __init__(self, cog: "TicketManager"):
         super().__init__(timeout=None)
         self.add_item(TicketSelect(cog))
+
 
 class TicketManager(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -89,9 +107,10 @@ class TicketManager(commands.Cog):
                     "channel_id": self.config_channel.id,
                     "message_id": self.config_message_id,
                     "ticket_emoji": self.config_ticket_emoji,
-                    "type_ticket": TYPE_TICKET
+                    "type_ticket": TYPE_TICKET,
                 },
-                file, indent=4,
+                file,
+                indent=4,
             )
 
     async def load_config_channel(self):
@@ -107,7 +126,7 @@ class TicketManager(commands.Cog):
         try:
             channel = self.bot.get_channel(channel_id) or await self.bot.fetch_channel(channel_id)
         except (discord.NotFound, discord.Forbidden):
-            printError("TicketManager", f"Salon {channel_id} introuvable ou inaccessible.")
+            print_error("TicketManager", f"Salon {channel_id} introuvable ou inaccessible.")
             return
 
         ticket_config = config.get("type_ticket", {})
@@ -119,16 +138,18 @@ class TicketManager(commands.Cog):
                 TYPE_TICKET[ticket_type] = category_id
 
         self.config_channel = channel
-        printMessage("TicketManager", f"Salon de ticket chargé : {channel.name} (ID: {channel.id})")
+        print_message(
+            "TicketManager", f"Salon de ticket chargé : {channel.name} (ID: {channel.id})"
+        )
         self.config_ticket_emoji = emoji
         try:
             await channel.fetch_message(message_id)
             self.config_message_id = message_id
         except discord.NotFound:
-            printError("TicketManager", f"Message {message_id} introuvable, recréation.")
+            print_error("TicketManager", f"Message {message_id} introuvable, recréation.")
             await self.send_embed_message(channel)
         except discord.Forbidden:
-            printError("TicketManager", f"Pas l'accès au message {message_id}.")
+            print_error("TicketManager", f"Pas l'accès au message {message_id}.")
 
     async def _delete_previous_message(self):
         if self.config_channel is None or self.config_message_id is None:
@@ -147,8 +168,14 @@ class TicketManager(commands.Cog):
             description=f"Réagissez avec {self.config_ticket_emoji} pour créer un ticket.",
             color=discord.Color.blue(),
         )
-        embed.add_field(name="❓ Support", value="Pour toute question ou problème technique.", inline=False)
-        embed.add_field(name="💰 Réservation", value="Pour toute demande de réservation dans un restaurant.", inline=False)
+        embed.add_field(
+            name="❓ Support", value="Pour toute question ou problème technique.", inline=False
+        )
+        embed.add_field(
+            name="💰 Réservation",
+            value="Pour toute demande de réservation dans un restaurant.",
+            inline=False,
+        )
         embed.set_footer(text="Merci de votre compréhension.")
 
         message = await channel.send(embed=embed, view=TicketView(self))
@@ -156,7 +183,6 @@ class TicketManager(commands.Cog):
         self.config_channel = channel
         self.config_message_id = message.id
         self._write_config()
-
 
     async def setup_config_channel(self, channel: discord.TextChannel):
         self.is_setup_complete = True
@@ -173,6 +199,7 @@ class TicketManager(commands.Cog):
 
         if self.config_channel is not None:
             await self.send_embed_message(self.config_channel)
+
 
 async def setup(bot):
     await bot.add_cog(TicketManager(bot))

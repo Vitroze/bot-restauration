@@ -1,12 +1,12 @@
-
 import discord
+
 from models.restaurant import Restaurant
 from ui.base_view import BaseView
 from ui.config_restaurant import ConfigRestaurantView
 from utils.manage_restaurant import (
     get_all_restaurants,
-    save_restaurant,
     is_existing_restaurant_type,
+    save_restaurant,
 )
 
 ALL_TYPES_PERMISSIONS_RESTAURANT = {
@@ -21,10 +21,17 @@ ALL_TYPES_PERMISSIONS_RESTAURANT = {
     "take_command": "Prendre une commande dans le restaurant",
 }
 
+
 class EditPermissionRestaurantView(BaseView):
     unauthorized_message = "Seul l'auteur de la commande peut utiliser ceci."
 
-    def __init__(self, parent: "ConfigRestaurantView", restaurant_name: str, guild: discord.Guild, remove: bool = False):
+    def __init__(
+        self,
+        parent: "ConfigRestaurantView",
+        restaurant_name: str,
+        guild: discord.Guild,
+        remove: bool = False,
+    ):
         super().__init__(parent.author_id, timeout=120)
         self.parent = parent
         self.restaurant_name = restaurant_name
@@ -72,7 +79,8 @@ class EditPermissionRestaurantView(BaseView):
             placeholder="Sélectionne un rôle...",
             default_values=(
                 [discord.Object(id=self.role_id, type=discord.Role)]
-                if self.role_id is not None else []
+                if self.role_id is not None
+                else []
             ),
             row=0,
         )
@@ -113,8 +121,11 @@ class EditPermissionRestaurantView(BaseView):
         if not self.available_permissions():
             self.role_id = None
             self.rebuild()
-            msg = ("Ce rôle n'a aucune permission configurée."
-                   if self.remove else "Ce rôle a déjà toutes les permissions.")
+            msg = (
+                "Ce rôle n'a aucune permission configurée."
+                if self.remove
+                else "Ce rôle a déjà toutes les permissions."
+            )
             await interaction.response.edit_message(content=f"❌ {msg}", view=self)
             return
         self.rebuild()
@@ -128,7 +139,9 @@ class EditPermissionRestaurantView(BaseView):
     async def on_confirm(self, interaction: discord.Interaction):
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:
-            await interaction.response.edit_message(content="Ce restaurant n'existe plus.", view=None)
+            await interaction.response.edit_message(
+                content="Ce restaurant n'existe plus.", view=None
+            )
             return
 
         perms = restaurant.setdefault("permissions", {})
@@ -153,7 +166,11 @@ class EditPermissionRestaurantView(BaseView):
         self.permission_id = None
 
         if not self.available_roles():
-            end = "Plus aucun rôle à retirer." if self.remove else "Tous les rôles ont déjà toutes les permissions."
+            end = (
+                "Plus aucun rôle à retirer."
+                if self.remove
+                else "Tous les rôles ont déjà toutes les permissions."
+            )
             await interaction.response.edit_message(content=f"{msg}\n{end}", view=None)
             return
 
@@ -195,7 +212,8 @@ class EditRestaurantModal(discord.ui.Modal):
         new_type = self.type_restaurant.value.strip()
         if not is_existing_restaurant_type(new_type):
             await interaction.response.send_message(
-                f"❌ Le type `{new_type}` n'existe pas. Crée-le d'abord avec `/cfg_vresto_create_type`.",
+                f"❌ Le type `{new_type}` n'existe pas. "
+                f"Crée-le d'abord avec `/cfg_vresto_create_type`.",
                 ephemeral=True,
             )
             return

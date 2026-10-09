@@ -1,10 +1,11 @@
-import discord
+import traceback
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
-from discord.ext import tasks, commands
-from utils.logger import printMessage, printError, printLog
-import traceback
 
+import discord
+from discord.ext import commands, tasks
+
+from utils.logger import print_error
 from utils.manage_reservations import get_all_reservations, save_reservations_to_file
 
 TZ = ZoneInfo("Europe/Paris")
@@ -18,6 +19,7 @@ RAPPELS = {
     "1_day": timedelta(days=1),
     "2_days": timedelta(days=2),
 }
+
 
 class Rappel(commands.Cog):
     def __init__(self, bot):
@@ -49,7 +51,8 @@ class Rappel(commands.Cog):
 
             already_send = res.setdefault("already_sent", [])
             dus = [
-                label for label, delta in RAPPELS.items()
+                label
+                for label, delta in RAPPELS.items()
                 if now >= dt - delta and label not in already_send
             ]
 
@@ -83,18 +86,25 @@ class Rappel(commands.Cog):
     async def send_rappel(self, res: dict, dt: datetime, rappel: str):
         try:
             user = self.bot.get_user(res["user_id"]) or await self.bot.fetch_user(res["user_id"])
-            embed = discord.Embed(title=f"Rappel de réservation ({await self.format_date(rappel)})", color=discord.Color.orange())
+            embed = discord.Embed(
+                title=f"Rappel de réservation ({await self.format_date(rappel)})",
+                color=discord.Color.orange(),
+            )
             embed.add_field(name="Restaurant", value=res["name_restaurant"], inline=False)
-            embed.add_field(name="Date de réservation", value=discord.utils.format_dt(dt, "D"), inline=False)
-            embed.add_field(name="Dans combien de temps", value=discord.utils.format_dt(dt, "R"), inline=False)
+            embed.add_field(
+                name="Date de réservation", value=discord.utils.format_dt(dt, "D"), inline=False
+            )
+            embed.add_field(
+                name="Dans combien de temps", value=discord.utils.format_dt(dt, "R"), inline=False
+            )
             embed.set_footer(text="Ceci est un rappel pour votre réservation.")
             await user.send(embed=embed)
         except discord.NotFound:
-            printError("Rappel", f"Utilisateur {res['user_id']} introuvable.")
+            print_error("Rappel", f"Utilisateur {res['user_id']} introuvable.")
         except discord.Forbidden:
-            printError("Rappel", f"MP fermés pour l'utilisateur {res['user_id']}.")
+            print_error("Rappel", f"MP fermés pour l'utilisateur {res['user_id']}.")
         except discord.HTTPException as e:
-            printError("Rappel", f"Erreur d'envoi du rappel : {e!r}")
+            print_error("Rappel", f"Erreur d'envoi du rappel : {e!r}")
 
     @check_reservations.before_loop
     async def before_check_reservations(self):
@@ -102,8 +112,10 @@ class Rappel(commands.Cog):
 
     @check_reservations.error
     async def check_reservations_error(self, error):
-        printError("Rappel", f"La boucle de rappel a planté : {error!r}")
-        printError("Rappel", f"Traceback : {traceback.format_exc()}")
+        print_error("Rappel", f"La boucle de rappel a planté : {error!r}")
+        print_error("Rappel", f"Traceback : {traceback.format_exc()}")
+
+
 # Setup
 async def setup(bot):
     await bot.add_cog(Rappel(bot))

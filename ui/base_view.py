@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import math
+
 import discord
-from utils.logger import printError
+
+from utils.logger import print_error
 
 
 class BaseView(discord.ui.View):
@@ -39,7 +42,7 @@ class BaseView(discord.ui.View):
         try:
             await self._edit_main(embed=self.build_embed(), view=self)
         except discord.HTTPException as e:
-            printError("BaseView", f"Erreur refresh_message : {e!r}")
+            print_error("BaseView", f"Erreur refresh_message : {e!r}")
 
     # ---------- Vérifications / timeout ----------
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -79,16 +82,25 @@ class PaginatedView(BaseView):
     def page_slice(self, items: list) -> tuple[int, list]:
         """Retourne (index de départ, éléments de la page courante)."""
         start = self.page * self.per_page
-        return start, items[start:start + self.per_page]
+        return start, items[start : start + self.per_page]
 
     def add_pagination_buttons(self, row: int = 1):
-        prev_btn = discord.ui.Button(emoji="◀️", style=discord.ButtonStyle.primary,
-                                     disabled=self.page == 0, row=row)
+        prev_btn = discord.ui.Button(
+            emoji="◀️", style=discord.ButtonStyle.primary, disabled=self.page == 0, row=row
+        )
         prev_btn.callback = self.on_prev_page
-        indicator = discord.ui.Button(label=f"{self.page + 1}/{self.page_count}",
-                                      style=discord.ButtonStyle.secondary, disabled=True, row=row)
-        next_btn = discord.ui.Button(emoji="▶️", style=discord.ButtonStyle.primary,
-                                     disabled=self.page >= self.page_count - 1, row=row)
+        indicator = discord.ui.Button(
+            label=f"{self.page + 1}/{self.page_count}",
+            style=discord.ButtonStyle.secondary,
+            disabled=True,
+            row=row,
+        )
+        next_btn = discord.ui.Button(
+            emoji="▶️",
+            style=discord.ButtonStyle.primary,
+            disabled=self.page >= self.page_count - 1,
+            row=row,
+        )
         next_btn.callback = self.on_next_page
         for b in (prev_btn, indicator, next_btn):
             self.add_item(b)

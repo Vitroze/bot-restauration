@@ -1,14 +1,17 @@
 from __future__ import annotations
+
 import inspect
+
 import discord
-from utils.manage_restaurant import (
-    get_all_restaurants,
-    delete_restaurant,
-)
 
 from ui.base_view import PaginatedView
-from ui.edit import EditRestaurantModal, EditPermissionRestaurantView
 from ui.category_restaurant_view import CategoryRestaurantView
+from ui.edit import EditPermissionRestaurantView, EditRestaurantModal
+from utils.manage_restaurant import (
+    delete_restaurant,
+    get_all_restaurants,
+)
+
 
 async def maybe_await(value):
     """Accepte les fonctions sync ET async (delete_restaurant, par exemple)."""
@@ -16,13 +19,14 @@ async def maybe_await(value):
         return await value
     return value
 
+
 class ConfigRestaurantView(PaginatedView):
     per_page = 10
 
     def __init__(self, author_id: int, timeout: float = 300):
         super().__init__(author_id, timeout)
-        self.mode = "list"                 # "list" | "detail" | "confirm"
-        self.selected: str | None = None   # nom du restaurant sélectionné
+        self.mode = "list"  # "list" | "detail" | "confirm"
+        self.selected: str | None = None  # nom du restaurant sélectionné
         self.rebuild()
 
     # ---------- Données ----------
@@ -61,7 +65,8 @@ class ConfigRestaurantView(PaginatedView):
             color=discord.Color.blue(),
         )
         embed.set_footer(
-            text=f"Page {self.page + 1}/{self.page_count} • {len(names)} restaurant(s) • Choisis-en un"
+            text=f"Page {self.page + 1}/{self.page_count} • {len(names)} "
+            "restaurant(s) • Choisis-en un"
         )
         return embed
 
@@ -78,9 +83,21 @@ class ConfigRestaurantView(PaginatedView):
         )
         embed.add_field(name="Type", value=restaurant.get("type", "N/A"), inline=True)
         embed.add_field(name="Localisation", value=restaurant.get("location", "N/A"), inline=True)
-        embed.add_field(name="Plats au menu", value=str(len(restaurant.get("menu", []))), inline=True)
-        embed.add_field(name="Réservations", value=str(len(restaurant.get("reservations", []))), inline=False)
-        embed.add_field(name="Catégorie", value=f"{self.origin.guild.get_channel(restaurant['category_id']).mention}" if restaurant.get("category_id") else "Aucune", inline=True)
+        embed.add_field(
+            name="Plats au menu", value=str(len(restaurant.get("menu", []))), inline=True
+        )
+        embed.add_field(
+            name="Réservations", value=str(len(restaurant.get("reservations", []))), inline=False
+        )
+        embed.add_field(
+            name="Catégorie",
+            value=(
+                f"{self.origin.guild.get_channel(restaurant['category_id']).mention}"
+                if restaurant.get("category_id")
+                else "Aucune"
+            ),
+            inline=True,
+        )
 
         count_permissions = len(restaurant.get("permissions", {}))
         if count_permissions > 0:
@@ -137,29 +154,49 @@ class ConfigRestaurantView(PaginatedView):
         self.add_pagination_buttons(row=1)
 
     def _add_detail_components(self):
-        edit_btn = discord.ui.Button(label="Modifier", emoji="✏️", style=discord.ButtonStyle.primary)
+        edit_btn = discord.ui.Button(
+            label="Modifier", emoji="✏️", style=discord.ButtonStyle.primary
+        )
         edit_btn.callback = self.on_edit
 
-        add_permission = discord.ui.Button(label="Ajouter un rôle", emoji="➕", style=discord.ButtonStyle.success)
+        add_permission = discord.ui.Button(
+            label="Ajouter un rôle", emoji="➕", style=discord.ButtonStyle.success
+        )
         add_permission.callback = self.on_add_permission
 
-        remove_permission = discord.ui.Button(label="Supprimer un rôle", emoji="➖", style=discord.ButtonStyle.danger)
+        remove_permission = discord.ui.Button(
+            label="Supprimer un rôle", emoji="➖", style=discord.ButtonStyle.danger
+        )
         remove_permission.callback = self.on_remove_permission
 
-        delete_btn = discord.ui.Button(label="Supprimer", emoji="🗑️", style=discord.ButtonStyle.danger)
+        delete_btn = discord.ui.Button(
+            label="Supprimer", emoji="🗑️", style=discord.ButtonStyle.danger
+        )
         delete_btn.callback = self.on_delete
 
-        config_category_btn = discord.ui.Button(label="Configurer la catégorie", emoji="🏷️", style=discord.ButtonStyle.secondary)
+        config_category_btn = discord.ui.Button(
+            label="Configurer la catégorie", emoji="🏷️", style=discord.ButtonStyle.secondary
+        )
         config_category_btn.callback = self.on_config_category
 
-        back_btn = discord.ui.Button(label="Retour à la liste", emoji="📋", style=discord.ButtonStyle.secondary)
+        back_btn = discord.ui.Button(
+            label="Retour à la liste", emoji="📋", style=discord.ButtonStyle.secondary
+        )
         back_btn.callback = self.on_back
-        for b in (edit_btn, add_permission, remove_permission, delete_btn, config_category_btn, back_btn):
+        for b in (
+            edit_btn,
+            add_permission,
+            remove_permission,
+            delete_btn,
+            config_category_btn,
+            back_btn,
+        ):
             self.add_item(b)
 
     def _add_confirm_components(self):
-        confirm_btn = discord.ui.Button(label="Confirmer la suppression", emoji="⚠️",
-                                        style=discord.ButtonStyle.danger)
+        confirm_btn = discord.ui.Button(
+            label="Confirmer la suppression", emoji="⚠️", style=discord.ButtonStyle.danger
+        )
         confirm_btn.callback = self.on_confirm_delete
         cancel_btn = discord.ui.Button(label="Annuler", style=discord.ButtonStyle.secondary)
         cancel_btn.callback = self.on_cancel_delete
@@ -191,11 +228,17 @@ class ConfigRestaurantView(PaginatedView):
             await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
             return
 
-        view = EditPermissionRestaurantView(self, restaurant["name"], interaction.guild, remove=False)
+        view = EditPermissionRestaurantView(
+            self, restaurant["name"], interaction.guild, remove=False
+        )
         if not view.available_roles():
-            await interaction.response.send_message("Tous les rôles ont déjà toutes les permissions.", ephemeral=True)
+            await interaction.response.send_message(
+                "Tous les rôles ont déjà toutes les permissions.", ephemeral=True
+            )
             return
-        await interaction.response.send_message("Ajouter une permission à un rôle :", view=view, ephemeral=True)
+        await interaction.response.send_message(
+            "Ajouter une permission à un rôle :", view=view, ephemeral=True
+        )
 
     async def on_remove_permission(self, interaction: discord.Interaction):
         restaurant = self.current()
@@ -203,11 +246,17 @@ class ConfigRestaurantView(PaginatedView):
             await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
             return
 
-        view = EditPermissionRestaurantView(self, restaurant["name"], interaction.guild, remove=True)
+        view = EditPermissionRestaurantView(
+            self, restaurant["name"], interaction.guild, remove=True
+        )
         if not view.available_roles():
-            await interaction.response.send_message("Aucun rôle n'a de permission configurée.", ephemeral=True)
+            await interaction.response.send_message(
+                "Aucun rôle n'a de permission configurée.", ephemeral=True
+            )
             return
-        await interaction.response.send_message("Retirer une permission à un rôle :", view=view, ephemeral=True)
+        await interaction.response.send_message(
+            "Retirer une permission à un rôle :", view=view, ephemeral=True
+        )
 
     async def on_delete(self, interaction: discord.Interaction):
         self.mode = "confirm"
@@ -226,7 +275,9 @@ class ConfigRestaurantView(PaginatedView):
         self.selected = None
         self.clamp_page()
         await self.refresh(interaction)
-        await interaction.followup.send(f"🗑️ Le restaurant `{name}` a été supprimé.", ephemeral=True)
+        await interaction.followup.send(
+            f"🗑️ Le restaurant `{name}` a été supprimé.", ephemeral=True
+        )
 
     async def on_config_category(self, interaction: discord.Interaction):
         restaurant = self.current()

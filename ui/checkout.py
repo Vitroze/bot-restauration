@@ -1,19 +1,24 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+
 import re
 import traceback
+from typing import TYPE_CHECKING
+
 import discord
-from models.restaurant import Restaurant
-from utils.function_utils import format_price, get_role_chef
+
 from ui.order_ticket import OrderView
-from utils.logger import printError
+from utils.function_utils import format_price, get_role_chef
+from utils.logger import print_error
+
 if TYPE_CHECKING:
     from ui.menu import MenuUI
+
 
 def slugify(text: str) -> str:
     """Convertit un texte en un slug utilisable pour les noms de salons Discord."""
 
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:30] or "client"
+
 
 class CheckoutModal(discord.ui.Modal):
     def __init__(self, view: "MenuUI"):
@@ -44,7 +49,9 @@ class CheckoutModal(discord.ui.Modal):
         guild = interaction.guild
 
         if guild is None:
-            await interaction.response.send_message("Commande impossible en message privé.", ephemeral=True)
+            await interaction.response.send_message(
+                "Commande impossible en message privé.", ephemeral=True
+            )
             return
         if not view.cart:
             await interaction.response.send_message("Ton panier est vide.", ephemeral=True)
@@ -56,7 +63,9 @@ class CheckoutModal(discord.ui.Modal):
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True),
+            guild.me: discord.PermissionOverwrite(
+                view_channel=True, send_messages=True, manage_channels=True
+            ),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
         }
 
@@ -66,11 +75,7 @@ class CheckoutModal(discord.ui.Modal):
         category_id = getattr(view.restaurant, "category_id", None)
         category = guild.get_channel(category_id) if category_id else None
         sID = f"commande-{slugify(interaction.user.name)}"
-        existing_channel = discord.utils.get(
-            guild.text_channels,
-            name=sID,
-            category=category
-        )
+        existing_channel = discord.utils.get(guild.text_channels, name=sID, category=category)
 
         if existing_channel:
             await interaction.followup.send(
@@ -94,7 +99,9 @@ class CheckoutModal(discord.ui.Modal):
             )
             return
         except discord.HTTPException as e:
-            await interaction.followup.send(f"❌ Impossible de créer le salon : {e}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ Impossible de créer le salon : {e}", ephemeral=True
+            )
             return
 
         recap = discord.Embed(
@@ -110,7 +117,9 @@ class CheckoutModal(discord.ui.Modal):
         if self.remarque.value:
             recap.add_field(name="Remarque", value=self.remarque.value, inline=False)
 
-        chefs = " ".join(r.mention for r in chef_roles) or "*Aucun chef configuré pour ce restaurant*"
+        chefs = (
+            " ".join(r.mention for r in chef_roles) or "*Aucun chef configuré pour ce restaurant*"
+        )
         order_view = OrderView(interaction.user.id, view.restaurant.name)
         await channel.send(
             content=f"👨‍🍳 {chefs} - nouvelle commande de {interaction.user.mention} !",
@@ -123,13 +132,14 @@ class CheckoutModal(discord.ui.Modal):
         view.detail_index = None
         view.rebuild()
         await interaction.edit_original_response(embed=view.build_embed(), view=view)
-        await interaction.followup.send(f"✅ Commande envoyée ! Suis-la ici : {channel.mention}", ephemeral=True)
+        await interaction.followup.send(
+            f"✅ Commande envoyée ! Suis-la ici : {channel.mention}", ephemeral=True
+        )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        printError("Checkout", f"Erreur modal paiement : {error!r}")
-        printError("Checkout", f"Traceback : {traceback.format_exc()}")
+        print_error("Checkout", f"Erreur modal paiement : {error!r}")
+        print_error("Checkout", f"Traceback : {traceback.format_exc()}")
         if interaction.response.is_done():
             await interaction.followup.send("Une erreur est survenue.", ephemeral=True)
         else:
             await interaction.response.send_message("Une erreur est survenue.", ephemeral=True)
-

@@ -1,9 +1,11 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+
 from models.restaurant import Restaurant
-from utils.manage_restaurant import RestaurantTransformer
 from ui.menu import MenuUI
+from utils.manage_restaurant import RestaurantTransformer
+
 
 class Menu(commands.Cog):
     def __init__(self, bot):
@@ -15,7 +17,9 @@ class Menu(commands.Cog):
     @app_commands.describe(restaurant="Le nom du restaurant dont vous voulez voir le menu.")
     async def menu(self, interaction: discord.Interaction, restaurant: RestaurantNameTransformer):
         if not restaurant:
-            await interaction.response.send_message("Le restaurant spécifié n'existe pas.", ephemeral=True)
+            await interaction.response.send_message(
+                "Le restaurant spécifié n'existe pas.", ephemeral=True
+            )
             return
 
         if not restaurant.menu:
@@ -27,6 +31,7 @@ class Menu(commands.Cog):
         view = MenuUI(restaurant, restaurant.menu, interaction.user.id)
         await interaction.response.send_message(embed=view.build_embed(), view=view)
         view.message = await interaction.original_response()
+
 
 async def setup(bot):
     await bot.add_cog(Menu(bot))

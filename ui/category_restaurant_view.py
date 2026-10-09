@@ -1,8 +1,10 @@
 import discord
+
+from models.restaurant import Restaurant
 from ui.base_view import BaseView
 from ui.config_restaurant import ConfigRestaurantView
 from utils.manage_restaurant import get_all_restaurants, save_restaurant
-from models.restaurant import Restaurant
+
 
 class CategoryRestaurantView(BaseView):
     unauthorized_message = "Seul l'auteur de la commande peut utiliser ceci."
@@ -24,7 +26,8 @@ class CategoryRestaurantView(BaseView):
             channel_types=[discord.ChannelType.category],
             default_values=(
                 [discord.Object(id=self.category_id, type=discord.CategoryChannel)]
-                if self.category_id is not None else []
+                if self.category_id is not None
+                else []
             ),
             row=0,
         )
@@ -50,7 +53,9 @@ class CategoryRestaurantView(BaseView):
     async def on_confirm(self, interaction: discord.Interaction):
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:
-            await interaction.response.edit_message(content="Ce restaurant n'existe plus.", view=None)
+            await interaction.response.edit_message(
+                content="Ce restaurant n'existe plus.", view=None
+            )
             return
 
         restaurant["category_id"] = self.category_id
@@ -59,4 +64,7 @@ class CategoryRestaurantView(BaseView):
 
         self.category_id = None
         self.rebuild()
-        await interaction.response.edit_message(content=f"✅ Catégorie configurée pour le restaurant `{self.restaurant_name}`.", view=self.parent)
+        await interaction.response.edit_message(
+            content=f"✅ Catégorie configurée pour le restaurant `{self.restaurant_name}`.",
+            view=self.parent,
+        )

@@ -1,9 +1,10 @@
-import traceback
+import asyncio
 
 import discord
-import asyncio
+
 from utils.function_utils import get_role_chef
 from utils.manage_restaurant import get_restaurant_by_name
+
 
 def _is_chef(interaction: discord.Interaction, restaurant_id: str) -> bool:
     member = interaction.user
@@ -17,18 +18,21 @@ def _is_chef(interaction: discord.Interaction, restaurant_id: str) -> bool:
     roles = get_role_chef(restaurant, interaction.guild)
     return any(r in roles for r in member.roles)
 
+
 class TakeOrderButton(
     discord.ui.DynamicItem[discord.ui.Button],
     template=r"order:take:(?P<customer_id>\d+):(?P<restaurant_id>[^:]+)",
 ):
     def __init__(self, customer_id: int, restaurant_id: str, *, taken: bool = False):
-        super().__init__(discord.ui.Button(
-            label="Commande prise" if taken else "Prendre la commande",
-            emoji="👨‍🍳",
-            style=discord.ButtonStyle.success,
-            custom_id=f"order:take:{customer_id}:{restaurant_id}",
-            disabled=taken,
-        ))
+        super().__init__(
+            discord.ui.Button(
+                label="Commande prise" if taken else "Prendre la commande",
+                emoji="👨‍🍳",
+                style=discord.ButtonStyle.success,
+                custom_id=f"order:take:{customer_id}:{restaurant_id}",
+                disabled=taken,
+            )
+        )
         self.customer_id = customer_id
         self.restaurant_id = restaurant_id
 
@@ -39,10 +43,12 @@ class TakeOrderButton(
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         try:
             ok = _is_chef(interaction, self.restaurant_id)
-        except Exception as e:
+        except Exception:
             ok = False
         if not ok:
-            await interaction.response.send_message("Seul le chef peut utiliser ces boutons.", ephemeral=True)
+            await interaction.response.send_message(
+                "Seul le chef peut utiliser ces boutons.", ephemeral=True
+            )
         return ok
 
     async def callback(self, interaction: discord.Interaction):
@@ -56,12 +62,15 @@ class TakeOrderButton(
 
         await interaction.response.edit_message(embed=embed, view=view)
         await interaction.channel.send(
-            f"✅ <@{self.customer_id}>, ta commande est prise en charge par {interaction.user.mention} !",
+            f"✅ <@{self.customer_id}>, ta commande est prise en charge "
+            f"par {interaction.user.mention} !",
             allowed_mentions=discord.AllowedMentions(users=True),
         )
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        await interaction.response.send_message(f"❌ Une erreur est survenue : {error}", ephemeral=True)
+        await interaction.response.send_message(
+            f"❌ Une erreur est survenue : {error}", ephemeral=True
+        )
 
 
 class CloseOrderButton(
@@ -69,12 +78,14 @@ class CloseOrderButton(
     template=r"order:close:(?P<customer_id>\d+):(?P<restaurant_id>[^:]+)",
 ):
     def __init__(self, customer_id: int, restaurant_id: str):
-        super().__init__(discord.ui.Button(
-            label="Fermer la commande",
-            emoji="🔒",
-            style=discord.ButtonStyle.danger,
-            custom_id=f"order:close:{customer_id}:{restaurant_id}",
-        ))
+        super().__init__(
+            discord.ui.Button(
+                label="Fermer la commande",
+                emoji="🔒",
+                style=discord.ButtonStyle.danger,
+                custom_id=f"order:close:{customer_id}:{restaurant_id}",
+            )
+        )
         self.customer_id = customer_id
         self.restaurant_id = restaurant_id
 
@@ -84,7 +95,9 @@ class CloseOrderButton(
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if not _is_chef(interaction, self.restaurant_id):
-            await interaction.response.send_message("Seul le chef peut utiliser ces boutons.", ephemeral=True)
+            await interaction.response.send_message(
+                "Seul le chef peut utiliser ces boutons.", ephemeral=True
+            )
             return False
         return True
 
@@ -98,12 +111,16 @@ class CloseOrderButton(
             child.disabled = True
         await interaction.response.edit_message(embed=embed, view=view)
 
-        await interaction.channel.send("🔒 Commande terminée. Ce salon sera supprimé dans 10 secondes.")
+        await interaction.channel.send(
+            "🔒 Commande terminée. Ce salon sera supprimé dans 10 secondes."
+        )
 
         customer = interaction.guild.get_member(self.customer_id)
         if customer:
             try:
-                await customer.send(f"🔒 Ta commande chez **{embed.title.split(' - ')[-1]}** est terminée. Merci !")
+                await customer.send(
+                    f"🔒 Ta commande chez **{embed.title.split(' - ')[-1]}** est terminée. Merci !"
+                )
             except discord.HTTPException:
                 pass
 
@@ -114,7 +131,10 @@ class CloseOrderButton(
             pass
 
     async def on_error(self, interaction: discord.Interaction, error: Exception):
-        await interaction.response.send_message(f"❌ Une erreur est survenue : {error}", ephemeral=True)
+        await interaction.response.send_message(
+            f"❌ Une erreur est survenue : {error}", ephemeral=True
+        )
+
 
 class OrderView(discord.ui.View):
     def __init__(self, customer_id: int, restaurant_id: str):

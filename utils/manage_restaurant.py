@@ -1,10 +1,14 @@
-import os
 import json
-from models.restaurant import Restaurant, RestaurantType
+import os
+
 import discord
 from discord import app_commands
 
+from models.restaurant import Restaurant, RestaurantType
+
 all_restaurants = []
+
+
 def get_all_restaurants():
     global all_restaurants
     """
@@ -28,12 +32,14 @@ def get_all_restaurants():
 
     return restaurants
 
+
 def get_restaurant_by_name(restaurant_name):
     """
     Get a restaurant by its name from the database.
     """
     restaurants = get_all_restaurants()
     return restaurants.get(restaurant_name, None)
+
 
 async def save_restaurant(restaurant: Restaurant) -> bool:
     """
@@ -51,17 +57,23 @@ async def save_restaurant(restaurant: Restaurant) -> bool:
 
     return True
 
+
 restaurant_objects = {}
+
+
 async def load_all_restaurants():
     global restaurant_objects
     restaurant_objects = {}
     restaurants = get_all_restaurants()
     for restaurant_name, restaurant_data in restaurants.items():
-        restaurant_data["permissions"] = {int(k): v for k, v in restaurant_data.get("permissions", {}).items()}
+        restaurant_data["permissions"] = {
+            int(k): v for k, v in restaurant_data.get("permissions", {}).items()
+        }
 
         restaurant_objects[restaurant_name] = Restaurant(**restaurant_data)
 
     return restaurant_objects
+
 
 async def get_restaurant_object(restaurant_name):
     """
@@ -74,6 +86,7 @@ async def get_restaurant_object(restaurant_name):
 
     return restaurant_objects.get(restaurant_name, None)
 
+
 def is_existing_restaurant(restaurant_name):
     """
     Check if a restaurant exists in the database.
@@ -84,6 +97,7 @@ def is_existing_restaurant(restaurant_name):
         return True
 
     return False
+
 
 def delete_restaurant(restaurant_name):
     """
@@ -101,11 +115,14 @@ def delete_restaurant(restaurant_name):
 
     return False
 
+
 class RestaurantTransformer(app_commands.Transformer):
     async def transform(self, interaction: discord.Interaction, value: str) -> "Restaurant":
         return await get_restaurant_object(value)
 
-    async def autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
         restaurants = get_all_restaurants()
         return [
             app_commands.Choice(name=restaurant["name"], value=restaurant["name"])
@@ -113,8 +130,11 @@ class RestaurantTransformer(app_commands.Transformer):
             if current.lower() in restaurant["name"].lower()
         ][:25]
 
+
 # TYPE RESTAURANT
 restaurant_types = []
+
+
 def get_all_restaurant_types():
     """
     Get all restaurant types from the database.
@@ -132,6 +152,7 @@ def get_all_restaurant_types():
 
     return restaurant_types
 
+
 def save_restaurant_type(restaurant_type: RestaurantType) -> bool:
     """
     Save a restaurant type to the database.
@@ -145,6 +166,7 @@ def save_restaurant_type(restaurant_type: RestaurantType) -> bool:
 
     return True
 
+
 def is_existing_restaurant_type(restaurant_type_name):
     """
     Check if a restaurant type exists in the database.
@@ -152,6 +174,7 @@ def is_existing_restaurant_type(restaurant_type_name):
 
     restaurant_types = get_all_restaurant_types()
     return restaurant_type_name in restaurant_types
+
 
 def delete_restaurant_type(restaurant_type_name):
     """
@@ -169,6 +192,7 @@ def delete_restaurant_type(restaurant_type_name):
 
     return False
 
+
 class RestaurantTypeTransformer(app_commands.Transformer):
     async def transform(self, interaction: discord.Interaction, value: str) -> RestaurantType:
         if is_existing_restaurant_type(value):
@@ -176,7 +200,9 @@ class RestaurantTypeTransformer(app_commands.Transformer):
 
         return None
 
-    async def autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def autocomplete(
+        self, interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
         restaurant_types = get_all_restaurant_types()
         return [
             app_commands.Choice(name=restaurant_type, value=restaurant_type)
