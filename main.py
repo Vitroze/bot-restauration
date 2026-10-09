@@ -1,8 +1,8 @@
-import os
 import asyncio
-import discord
+import os
 import traceback
 
+import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv

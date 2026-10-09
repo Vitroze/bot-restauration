@@ -6,8 +6,8 @@ import discord
 
 from ui.base_view import PaginatedView
 from ui.category_restaurant_view import CategoryRestaurantView
-from ui.edit_restaurant import EditPermissionRestaurantView, EditRestaurantModal
 from ui.edit_item import EditItem, SelectItemView
+from ui.edit_restaurant import EditPermissionRestaurantView, EditRestaurantModal
 from utils.manage_restaurant import (
     delete_restaurant,
     get_all_restaurants,
@@ -328,7 +328,9 @@ class ConfigRestaurantView(PaginatedView):
             await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
             return
         if not restaurant.get("menu"):
-            await interaction.response.send_message("❌ Le menu de ce restaurant est vide.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Le menu de ce restaurant est vide.", ephemeral=True
+            )
             return
 
         view = SelectItemView(self, restaurant["name"], remove=False)
@@ -342,7 +344,9 @@ class ConfigRestaurantView(PaginatedView):
             await interaction.response.send_message("Ce restaurant n'existe plus.", ephemeral=True)
             return
         if not restaurant.get("menu"):
-            await interaction.response.send_message("❌ Le menu de ce restaurant est vide.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Le menu de ce restaurant est vide.", ephemeral=True
+            )
             return
 
         view = SelectItemView(self, restaurant["name"], remove=True)

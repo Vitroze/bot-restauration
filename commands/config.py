@@ -6,12 +6,10 @@ from models.restaurant import Restaurant, RestaurantType
 from ui.config_restaurant import ConfigRestaurantView
 from utils.function_utils import is_valid_emoji
 from utils.logger import print_message
-from utils.manage_permission import check_permission_restaurant
 from utils.manage_restaurant import (
     RestaurantTransformer,
     RestaurantTypeTransformer,
     delete_restaurant_type,
-    get_all_restaurants,
     is_existing_restaurant,
     is_existing_restaurant_type,
     save_restaurant,
@@ -81,9 +79,7 @@ class Config(commands.Cog):
     # ==================
     # TYPE
     # ==================
-    @app_commands.command(
-        name=f"{PREFIX}create_type", description="Crée un type de restaurant."
-    )
+    @app_commands.command(name=f"{PREFIX}create_type", description="Crée un type de restaurant.")
     @app_commands.checks.has_permissions(administrator=True)
     async def create_restaurant_type(self, interaction: discord.Interaction, name: str):
         if is_existing_restaurant_type(name):

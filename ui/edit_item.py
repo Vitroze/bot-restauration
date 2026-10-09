@@ -1,20 +1,24 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import discord
+
 if TYPE_CHECKING:
     from ui.config_restaurant import ConfigRestaurantView
+
+from models.restaurant import Restaurant
+from ui.base_view import BaseView
+from utils.function_utils import format_price
 from utils.manage_restaurant import (
     get_all_restaurants,
     save_restaurant,
 )
 
-from ui.base_view import BaseView
-from utils.function_utils import format_price
-from models.restaurant import Restaurant
 
 class SelectItemView(BaseView):
     """Choix d'un item du menu, pour le modifier ou le supprimer."""
+
     unauthorized_message = "Seul l'auteur de la commande peut utiliser ceci."
     per_page = 25  # limite Discord pour un Select
 
@@ -34,7 +38,7 @@ class SelectItemView(BaseView):
         self.clear_items()
         menu = self._menu()
         start = self.page * self.per_page
-        chunk = menu[start:start + self.per_page]
+        chunk = menu[start : start + self.per_page]
 
         if chunk:
             options = []
@@ -50,8 +54,11 @@ class SelectItemView(BaseView):
                     )
                 )
             select = discord.ui.Select(
-                placeholder="Sélectionne l'item à supprimer..." if self.remove
-                else "Sélectionne l'item à modifier...",
+                placeholder=(
+                    "Sélectionne l'item à supprimer..."
+                    if self.remove
+                    else "Sélectionne l'item à modifier..."
+                ),
                 options=options,
                 row=0,
             )
@@ -82,7 +89,9 @@ class SelectItemView(BaseView):
         item_name = interaction.data["values"][0]
         restaurant = get_all_restaurants().get(self.restaurant_name)
         if not restaurant:
-            await interaction.response.edit_message(content="Ce restaurant n'existe plus.", view=None)
+            await interaction.response.edit_message(
+                content="Ce restaurant n'existe plus.", view=None
+            )
             return
 
         menu = restaurant.get("menu", [])
@@ -108,6 +117,7 @@ class SelectItemView(BaseView):
             EditItem(self.parent, restaurant, edit=True, item=item)
         )
 
+
 class EditItem(discord.ui.Modal):
     def __init__(
         self,
@@ -116,7 +126,9 @@ class EditItem(discord.ui.Modal):
         edit: bool = False,
         item: dict | None = None,
     ):
-        super().__init__(title=f"{'Modifier' if edit else 'Ajouter'} un item - {restaurant['name']}"[:45])
+        super().__init__(
+            title=f"{'Modifier' if edit else 'Ajouter'} un item - {restaurant['name']}"[:45]
+        )
         self.config_view = view
         self.restaurant_name = restaurant["name"]
         self.edit = edit
@@ -162,7 +174,9 @@ class EditItem(discord.ui.Modal):
 
         item_name = self.name.value.strip()
         if not item_name:
-            await interaction.response.send_message("❌ Le nom de l'item ne peut pas être vide.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Le nom de l'item ne peut pas être vide.", ephemeral=True
+            )
             return
 
         try:
@@ -170,7 +184,9 @@ class EditItem(discord.ui.Modal):
             if price < 0:
                 raise ValueError
         except ValueError:
-            await interaction.response.send_message("❌ Le prix doit être un nombre positif.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Le prix doit être un nombre positif.", ephemeral=True
+            )
             return
 
         item = {
@@ -182,19 +198,23 @@ class EditItem(discord.ui.Modal):
 
         menu = restaurant.setdefault("menu", [])
         if self.edit:
-            index = next(
-                (i for i, it in enumerate(menu) if it["name"] == self.original_name), None
-            )
+            index = next((i for i, it in enumerate(menu) if it["name"] == self.original_name), None)
             if index is None:
-                await interaction.response.send_message("❌ L'item n'existe plus dans le menu.", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ L'item n'existe plus dans le menu.", ephemeral=True
+                )
                 return
             if item_name != self.original_name and any(it["name"] == item_name for it in menu):
-                await interaction.response.send_message("❌ Un item avec ce nom existe déjà dans le menu.", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ Un item avec ce nom existe déjà dans le menu.", ephemeral=True
+                )
                 return
             menu[index] = item
         else:
             if any(it["name"] == item_name for it in menu):
-                await interaction.response.send_message("❌ Un item avec ce nom existe déjà dans le menu.", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ Un item avec ce nom existe déjà dans le menu.", ephemeral=True
+                )
                 return
             menu.append(item)
 
