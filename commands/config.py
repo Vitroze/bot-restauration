@@ -18,6 +18,10 @@ ALL_TYPES_PERMISSIONS_RESTAURANT = [
     "view_config",
     "manage_reservations",
     "see_reservations",
+    "manage_tickets",
+    "add_item_menu",
+    "edit_item_menu",
+    "remove_item_menu",
 ]
 
 @app_commands.guild_only()
