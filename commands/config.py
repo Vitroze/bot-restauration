@@ -12,17 +12,6 @@ from utils.function_utils import is_valid_emoji
 printMessage("Config", "Chargement de l'extension : config")
 
 PREFIX = "cfg_"
-ALL_TYPES_PERMISSIONS_RESTAURANT = {
-    "edit_restaurant": "Modifier les informations du restaurant",
-    "view_config": "Voir la configuration du restaurant",
-    "manage_reservations": "Gérer les réservations du restaurant",
-    "see_reservations": "Voir les réservations du restaurant",
-    "manage_tickets": "Gérer les tickets du restaurant",
-    "add_item_menu": "Ajouter un item au menu d'un restaurant",
-    "edit_item_menu": "Modifier un item du menu d'un restaurant",
-    "remove_item_menu": "Supprimer un item du menu d'un restaurant",
-    "take_command": "Prendre une commande dans le restaurant",
-}
 
 @app_commands.guild_only()
 class Config(commands.Cog):
